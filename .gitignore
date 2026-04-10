@@ -1,0 +1,45 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Node
+node_modules/
+.next/
+dist/
+build/
+coverage/
+
+.agent/
+.claude/
+.codex/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
+.pub-cache/
+android/.gradle/
+android/app/debug/
+android/app/profile/
+android/app/release/
+ios/Pods/
+ios/.symlinks/
+linux/flutter/ephemeral/
+macos/Flutter/ephemeral/
+windows/flutter/ephemeral/
