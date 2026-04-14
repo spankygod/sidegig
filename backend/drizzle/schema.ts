@@ -58,6 +58,13 @@ export const chatThreadContextEnum = pgEnum('chat_thread_context', [
   'hire'
 ])
 
+export const disputeStatusEnum = pgEnum('dispute_status', [
+  'open',
+  'under_review',
+  'resolved',
+  'cancelled'
+])
+
 export const profiles = pgTable('profiles', {
   id: uuid('id').primaryKey().references(() => authUsers.id, { onDelete: 'cascade' }),
   displayName: text('display_name').notNull(),
@@ -187,6 +194,26 @@ export const chatMessages = pgTable('chat_messages', {
   senderCreatedAtIdx: index('chat_messages_sender_created_at_idx').on(table.senderId, table.createdAt)
 }))
 
+export const disputes = pgTable('disputes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  hireId: uuid('hire_id').notNull().references(() => hires.id, { onDelete: 'cascade' }),
+  openedBy: uuid('opened_by').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
+  posterId: uuid('poster_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
+  workerId: uuid('worker_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
+  reason: text('reason').notNull(),
+  details: text('details'),
+  status: disputeStatusEnum('status').notNull().default('open'),
+  resolution: text('resolution'),
+  resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+}, (table) => ({
+  hireUnique: unique('disputes_hire_id_unique').on(table.hireId),
+  posterStatusIdx: index('disputes_poster_status_idx').on(table.posterId, table.status),
+  workerStatusIdx: index('disputes_worker_status_idx').on(table.workerId, table.status),
+  openedByIdx: index('disputes_opened_by_idx').on(table.openedBy)
+}))
+
 export const authUsersRelations = relations(authUsers, ({ many, one }) => ({
   profile: one(profiles, {
     fields: [authUsers.id],
@@ -195,7 +222,8 @@ export const authUsersRelations = relations(authUsers, ({ many, one }) => ({
   gigPosts: many(gigPosts),
   gigApplications: many(gigApplications),
   posterHires: many(hires),
-  workerHires: many(hires)
+  workerHires: many(hires),
+  openedDisputes: many(disputes)
 }))
 
 export const profilesRelations = relations(profiles, ({ one }) => ({
@@ -259,6 +287,10 @@ export const hiresRelations = relations(hires, ({ one }) => ({
   worker: one(authUsers, {
     fields: [hires.workerId],
     references: [authUsers.id]
+  }),
+  dispute: one(disputes, {
+    fields: [hires.id],
+    references: [disputes.hireId]
   })
 }))
 
@@ -293,6 +325,25 @@ export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
   })
 }))
 
+export const disputesRelations = relations(disputes, ({ one }) => ({
+  hire: one(hires, {
+    fields: [disputes.hireId],
+    references: [hires.id]
+  }),
+  openedByUser: one(authUsers, {
+    fields: [disputes.openedBy],
+    references: [authUsers.id]
+  }),
+  poster: one(authUsers, {
+    fields: [disputes.posterId],
+    references: [authUsers.id]
+  }),
+  worker: one(authUsers, {
+    fields: [disputes.workerId],
+    references: [authUsers.id]
+  })
+}))
+
 export const schema = {
   authUsers,
   profiles,
@@ -301,7 +352,8 @@ export const schema = {
   gigApplications,
   hires,
   chatThreads,
-  chatMessages
+  chatMessages,
+  disputes
 }
 
 export type DrizzleSchema = typeof schema

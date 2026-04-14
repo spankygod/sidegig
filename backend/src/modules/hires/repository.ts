@@ -553,20 +553,3 @@ export async function acceptHireCompletion (
     nextStatus: 'poster_accepted'
   })
 }
-
-export async function disputeHireCompletion (
-  db: Pool,
-  input: {
-    hireId: string
-    posterId: string
-  }
-): Promise<HireSummary | null> {
-  return await updateHireStatus(db, {
-    actorId: input.posterId,
-    actorRole: 'poster',
-    allowedStatuses: ['worker_marked_done'],
-    gigStatus: 'disputed',
-    hireId: input.hireId,
-    nextStatus: 'disputed'
-  })
-}

@@ -2,7 +2,6 @@ import { type FastifyPluginAsync, type FastifyReply } from 'fastify'
 import {
   acceptFundedHire,
   acceptHireCompletion,
-  disputeHireCompletion,
   getHireWorkDetail,
   getUserHireById,
   listUserHires,
@@ -12,6 +11,7 @@ import {
 import type { AuthenticatedUser } from '../../../modules/auth/types'
 import { HIRE_STATUSES, type HireStatus, type HireSummary } from '../../../modules/hires/types'
 import { ensureUserProfile } from '../../../modules/users/repository'
+import { openHireDispute } from '../../../modules/disputes/repository'
 
 type HireParams = {
   hireId: string
@@ -25,6 +25,11 @@ type HireAction = (input: {
   hireId: string
   userId: string
 }) => Promise<HireSummary | null>
+
+type OpenDisputeBody = {
+  reason: string
+  details?: string | null
+}
 
 const hireParamsSchema = {
   type: 'object',
@@ -184,18 +189,36 @@ const hiresRoutes: FastifyPluginAsync = async (fastify) => {
     )
   })
 
-  fastify.post<{ Params: HireParams }>('/:hireId/dispute', {
+  fastify.post<{ Params: HireParams, Body: OpenDisputeBody }>('/:hireId/dispute', {
     onRequest: [fastify.authenticate],
     schema: {
-      params: hireParamsSchema
+      params: hireParamsSchema,
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['reason'],
+        properties: {
+          reason: { type: 'string', minLength: 3, maxLength: 160 },
+          details: { type: 'string', minLength: 1, maxLength: 2000, nullable: true }
+        }
+      }
     }
   }, async function (request, reply) {
-    return await runHireAction(
-      request,
-      reply,
-      async ({ hireId, userId }) => await disputeHireCompletion(fastify.db, { hireId, posterId: userId }),
-      'Only the poster can dispute a hire after the worker marks it done'
-    )
+    await ensureUserProfile(fastify.db, request.authUser!)
+
+    const result = await openHireDispute(fastify.db, {
+      hireId: request.params.hireId,
+      posterId: request.authUser!.id,
+      reason: request.body.reason,
+      details: request.body.details
+    })
+
+    if (result == null) {
+      reply.conflict('Only the poster can dispute a hire after the worker marks it done')
+      return
+    }
+
+    return result
   })
 }
 
