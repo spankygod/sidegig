@@ -21,6 +21,7 @@ import {
   updateHireMilestoneStatus
 } from '../../../modules/milestones/repository'
 import { HIRE_MILESTONE_STATUSES, type HireMilestoneStatus } from '../../../modules/milestones/types'
+import { ensurePayoutForHire } from '../../../modules/payments/repository'
 
 type HireParams = {
   hireId: string
@@ -393,6 +394,8 @@ const hiresRoutes: FastifyPluginAsync = async (fastify) => {
     )
 
     if (result?.hire != null) {
+      await ensurePayoutForHire(fastify.db, result.hire.id)
+
       await createNotification(fastify.db, {
         userId: result.hire.workerId,
         actorId: request.authUser!.id,

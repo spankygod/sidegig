@@ -8,6 +8,8 @@ type AdminOverviewRow = {
   applications: string | number
   active_hires: string | number
   open_disputes: string | number
+  paid_payments: string | number
+  pending_payouts: string | number
 }
 
 type AdminGigRow = {
@@ -85,7 +87,9 @@ export async function getAdminOverview (db: Pool): Promise<AdminOverview> {
         (select count(*) from public.gig_posts) as total_gigs,
         (select count(*) from public.gig_applications) as applications,
         (select count(*) from public.hires where status in ('funded', 'accepted', 'in_progress', 'worker_marked_done')) as active_hires,
-        (select count(*) from public.disputes where status in ('open', 'under_review')) as open_disputes
+        (select count(*) from public.disputes where status in ('open', 'under_review')) as open_disputes,
+        (select count(*) from public.payments where status = 'paid') as paid_payments,
+        (select count(*) from public.payouts where status = 'pending') as pending_payouts
     `
   )
 
@@ -97,7 +101,9 @@ export async function getAdminOverview (db: Pool): Promise<AdminOverview> {
     totalGigs: toNumber(row.total_gigs),
     applications: toNumber(row.applications),
     activeHires: toNumber(row.active_hires),
-    openDisputes: toNumber(row.open_disputes)
+    openDisputes: toNumber(row.open_disputes),
+    paidPayments: toNumber(row.paid_payments),
+    pendingPayouts: toNumber(row.pending_payouts)
   }
 }
 

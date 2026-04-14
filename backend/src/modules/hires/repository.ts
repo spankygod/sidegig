@@ -572,6 +572,6 @@ export async function acceptHireCompletion (
     gigStatus: 'completed',
     hireId: input.hireId,
     incrementWorkerJobsCompleted: true,
-    nextStatus: 'poster_accepted'
+    nextStatus: 'payout_ready'
   })
 }

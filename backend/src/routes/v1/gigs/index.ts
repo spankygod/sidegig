@@ -15,6 +15,7 @@ import {
 } from '../../../modules/gigs/repository'
 import { fundGigHire } from '../../../modules/hires/repository'
 import { createNotification } from '../../../modules/notifications/repository'
+import { recordHirePayment } from '../../../modules/payments/repository'
 import {
   DURATION_BUCKETS,
   GIG_CATEGORIES,
@@ -687,6 +688,15 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
     const updatedGig = await getPosterGigById(fastify.db, request.authUser!.id, request.params.gigId)
     const applications = await listGigApplicationsForPoster(fastify.db, request.authUser!.id, request.params.gigId)
 
+    const payment = await recordHirePayment(fastify.db, {
+      hireId: hire.id,
+      payerId: hire.posterId,
+      payeeId: hire.workerId,
+      amount: gig.priceAmount,
+      currency: gig.currency,
+      provider: 'manual'
+    })
+
     await createNotification(fastify.db, {
       userId: hire.workerId,
       actorId: request.authUser!.id,
@@ -699,6 +709,7 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
 
     return {
       hire,
+      payment,
       gig: updatedGig,
       applications
     }

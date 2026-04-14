@@ -5,6 +5,8 @@ export interface AdminOverview {
   applications: number
   activeHires: number
   openDisputes: number
+  paidPayments: number
+  pendingPayouts: number
 }
 
 export interface AdminGigSummary {

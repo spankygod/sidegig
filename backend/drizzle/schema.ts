@@ -82,6 +82,18 @@ export const hireMilestoneStatusEnum = pgEnum('hire_milestone_status', [
   'cancelled'
 ])
 
+export const paymentStatusEnum = pgEnum('payment_status', [
+  'paid',
+  'refunded',
+  'failed'
+])
+
+export const payoutStatusEnum = pgEnum('payout_status', [
+  'pending',
+  'paid',
+  'cancelled'
+])
+
 export const profiles = pgTable('profiles', {
   id: uuid('id').primaryKey().references(() => authUsers.id, { onDelete: 'cascade' }),
   displayName: text('display_name').notNull(),
@@ -280,6 +292,46 @@ export const hireMilestones = pgTable('hire_milestones', {
   createdByIdx: index('hire_milestones_created_by_idx').on(table.createdBy)
 }))
 
+export const payments = pgTable('payments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  hireId: uuid('hire_id').notNull().references(() => hires.id, { onDelete: 'cascade' }),
+  payerId: uuid('payer_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
+  payeeId: uuid('payee_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
+  amount: integer('amount').notNull(),
+  currency: text('currency').notNull().default('PHP'),
+  status: paymentStatusEnum('status').notNull().default('paid'),
+  provider: text('provider').notNull().default('manual'),
+  providerReference: text('provider_reference'),
+  paidAt: timestamp('paid_at', { withTimezone: true }).notNull().defaultNow(),
+  refundedAt: timestamp('refunded_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+}, (table) => ({
+  hireUnique: unique('payments_hire_id_unique').on(table.hireId),
+  payerCreatedAtIdx: index('payments_payer_created_at_idx').on(table.payerId, table.createdAt),
+  payeeCreatedAtIdx: index('payments_payee_created_at_idx').on(table.payeeId, table.createdAt),
+  amountCheck: check('payments_amount_check', sql`${table.amount} > 0`)
+}))
+
+export const payouts = pgTable('payouts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  hireId: uuid('hire_id').notNull().references(() => hires.id, { onDelete: 'cascade' }),
+  paymentId: uuid('payment_id').notNull().references(() => payments.id, { onDelete: 'cascade' }),
+  workerId: uuid('worker_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
+  amount: integer('amount').notNull(),
+  currency: text('currency').notNull().default('PHP'),
+  status: payoutStatusEnum('status').notNull().default('pending'),
+  providerReference: text('provider_reference'),
+  paidAt: timestamp('paid_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+}, (table) => ({
+  hireUnique: unique('payouts_hire_id_unique').on(table.hireId),
+  statusCreatedAtIdx: index('payouts_status_created_at_idx').on(table.status, table.createdAt),
+  workerStatusIdx: index('payouts_worker_status_idx').on(table.workerId, table.status),
+  amountCheck: check('payouts_amount_check', sql`${table.amount} > 0`)
+}))
+
 export const authUsersRelations = relations(authUsers, ({ many, one }) => ({
   profile: one(profiles, {
     fields: [authUsers.id],
@@ -292,7 +344,9 @@ export const authUsersRelations = relations(authUsers, ({ many, one }) => ({
   openedDisputes: many(disputes),
   authoredReviews: many(reviews),
   notifications: many(notifications),
-  createdMilestones: many(hireMilestones)
+  createdMilestones: many(hireMilestones),
+  payerPayments: many(payments),
+  workerPayouts: many(payouts)
 }))
 
 export const profilesRelations = relations(profiles, ({ one }) => ({
@@ -362,7 +416,15 @@ export const hiresRelations = relations(hires, ({ one, many }) => ({
     references: [disputes.hireId]
   }),
   reviews: many(reviews),
-  milestones: many(hireMilestones)
+  milestones: many(hireMilestones),
+  payment: one(payments, {
+    fields: [hires.id],
+    references: [payments.hireId]
+  }),
+  payout: one(payouts, {
+    fields: [hires.id],
+    references: [payouts.hireId]
+  })
 }))
 
 export const reviewsRelations = relations(reviews, ({ one }) => ({
@@ -398,6 +460,36 @@ export const hireMilestonesRelations = relations(hireMilestones, ({ one }) => ({
   }),
   createdByUser: one(authUsers, {
     fields: [hireMilestones.createdBy],
+    references: [authUsers.id]
+  })
+}))
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  hire: one(hires, {
+    fields: [payments.hireId],
+    references: [hires.id]
+  }),
+  payer: one(authUsers, {
+    fields: [payments.payerId],
+    references: [authUsers.id]
+  }),
+  payee: one(authUsers, {
+    fields: [payments.payeeId],
+    references: [authUsers.id]
+  })
+}))
+
+export const payoutsRelations = relations(payouts, ({ one }) => ({
+  hire: one(hires, {
+    fields: [payouts.hireId],
+    references: [hires.id]
+  }),
+  payment: one(payments, {
+    fields: [payouts.paymentId],
+    references: [payments.id]
+  }),
+  worker: one(authUsers, {
+    fields: [payouts.workerId],
     references: [authUsers.id]
   })
 }))
@@ -464,7 +556,9 @@ export const schema = {
   disputes,
   reviews,
   notifications,
-  hireMilestones
+  hireMilestones,
+  payments,
+  payouts
 }
 
 export type DrizzleSchema = typeof schema
