@@ -1,5 +1,5 @@
 import type { Pool } from 'pg'
-import type { HireSummary } from './types'
+import type { HireStatus, HireSummary } from './types'
 
 type HireRow = {
   id: string
@@ -11,6 +11,15 @@ type HireRow = {
   funded_at: Date | string | null
   created_at: Date | string
   updated_at: Date | string
+}
+
+type HireTransitionInput = {
+  actorId: string
+  actorRole: 'poster' | 'worker'
+  allowedStatuses: HireStatus[]
+  gigStatus?: 'funded' | 'in_progress' | 'completed' | 'disputed'
+  hireId: string
+  nextStatus: HireStatus
 }
 
 function toIsoString (value: Date | string): string {
@@ -28,6 +37,85 @@ function mapHire (row: HireRow): HireSummary {
     fundedAt: row.funded_at == null ? null : toIsoString(row.funded_at),
     createdAt: toIsoString(row.created_at),
     updatedAt: toIsoString(row.updated_at)
+  }
+}
+
+async function updateHireStatus (
+  db: Pool,
+  input: HireTransitionInput
+): Promise<HireSummary | null> {
+  const client = await db.connect()
+  const actorColumn = input.actorRole === 'poster' ? 'poster_id' : 'worker_id'
+
+  try {
+    await client.query('begin')
+
+    const currentResult = await client.query<HireRow>(
+      `
+        select
+          id,
+          gig_id,
+          application_id,
+          poster_id,
+          worker_id,
+          status,
+          funded_at,
+          created_at,
+          updated_at
+        from public.hires
+        where id = $1
+          and ${actorColumn} = $2
+          and status = any($3::public.hire_status[])
+        for update
+      `,
+      [input.hireId, input.actorId, input.allowedStatuses]
+    )
+
+    if (currentResult.rowCount === 0) {
+      await client.query('rollback')
+      return null
+    }
+
+    const current = currentResult.rows[0]
+
+    if (input.gigStatus != null) {
+      await client.query(
+        `
+          update public.gig_posts
+          set status = $2
+          where id = $1
+        `,
+        [current.gig_id, input.gigStatus]
+      )
+    }
+
+    const updatedResult = await client.query<HireRow>(
+      `
+        update public.hires
+        set status = $2
+        where id = $1
+        returning
+          id,
+          gig_id,
+          application_id,
+          poster_id,
+          worker_id,
+          status,
+          funded_at,
+          created_at,
+          updated_at
+      `,
+      [input.hireId, input.nextStatus]
+    )
+
+    await client.query('commit')
+
+    return mapHire(updatedResult.rows[0])
+  } catch (error) {
+    await client.query('rollback')
+    throw error
+  } finally {
+    client.release()
   }
 }
 
@@ -136,4 +224,157 @@ export async function fundGigHire (
   } finally {
     client.release()
   }
+}
+
+export async function listUserHires (
+  db: Pool,
+  userId: string,
+  filters?: {
+    status?: HireStatus
+  }
+): Promise<HireSummary[]> {
+  const values: Array<string | HireStatus> = [userId]
+  const conditions = ['(poster_id = $1 or worker_id = $1)']
+
+  if (filters?.status != null) {
+    values.push(filters.status)
+    conditions.push(`status = $${values.length}`)
+  }
+
+  const result = await db.query<HireRow>(
+    `
+      select
+        id,
+        gig_id,
+        application_id,
+        poster_id,
+        worker_id,
+        status,
+        funded_at,
+        created_at,
+        updated_at
+      from public.hires
+      where ${conditions.join(' and ')}
+      order by updated_at desc, created_at desc
+    `,
+    values
+  )
+
+  return result.rows.map(mapHire)
+}
+
+export async function getUserHireById (
+  db: Pool,
+  input: {
+    hireId: string
+    userId: string
+  }
+): Promise<HireSummary | null> {
+  const result = await db.query<HireRow>(
+    `
+      select
+        id,
+        gig_id,
+        application_id,
+        poster_id,
+        worker_id,
+        status,
+        funded_at,
+        created_at,
+        updated_at
+      from public.hires
+      where id = $1
+        and (poster_id = $2 or worker_id = $2)
+    `,
+    [input.hireId, input.userId]
+  )
+
+  if (result.rowCount === 0) {
+    return null
+  }
+
+  return mapHire(result.rows[0])
+}
+
+export async function acceptFundedHire (
+  db: Pool,
+  input: {
+    hireId: string
+    workerId: string
+  }
+): Promise<HireSummary | null> {
+  return await updateHireStatus(db, {
+    actorId: input.workerId,
+    actorRole: 'worker',
+    allowedStatuses: ['funded'],
+    hireId: input.hireId,
+    nextStatus: 'accepted'
+  })
+}
+
+export async function startAcceptedHire (
+  db: Pool,
+  input: {
+    hireId: string
+    workerId: string
+  }
+): Promise<HireSummary | null> {
+  return await updateHireStatus(db, {
+    actorId: input.workerId,
+    actorRole: 'worker',
+    allowedStatuses: ['accepted'],
+    gigStatus: 'in_progress',
+    hireId: input.hireId,
+    nextStatus: 'in_progress'
+  })
+}
+
+export async function markHireDone (
+  db: Pool,
+  input: {
+    hireId: string
+    workerId: string
+  }
+): Promise<HireSummary | null> {
+  return await updateHireStatus(db, {
+    actorId: input.workerId,
+    actorRole: 'worker',
+    allowedStatuses: ['in_progress'],
+    hireId: input.hireId,
+    nextStatus: 'worker_marked_done'
+  })
+}
+
+export async function acceptHireCompletion (
+  db: Pool,
+  input: {
+    hireId: string
+    posterId: string
+  }
+): Promise<HireSummary | null> {
+  return await updateHireStatus(db, {
+    actorId: input.posterId,
+    actorRole: 'poster',
+    allowedStatuses: ['worker_marked_done'],
+    gigStatus: 'completed',
+    hireId: input.hireId,
+    nextStatus: 'poster_accepted'
+  })
+}
+
+export async function disputeHireCompletion (
+  db: Pool,
+  input: {
+    hireId: string
+    posterId: string
+  }
+): Promise<HireSummary | null> {
+  return await updateHireStatus(db, {
+    actorId: input.posterId,
+    actorRole: 'poster',
+    allowedStatuses: ['worker_marked_done'],
+    gigStatus: 'disputed',
+    hireId: input.hireId,
+    nextStatus: 'disputed'
+  })
 }

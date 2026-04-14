@@ -73,6 +73,18 @@
 - `admin`: moderation, payout queue, overrides, audit trail
 - `notifications`: push and in-app notifications
 
+## Backend route boundaries
+
+User-facing mobile routes and admin-dashboard routes must stay separate.
+
+- Mobile app routes live under `/v1/...`.
+- Admin dashboard routes live under `/admin/v1/...`.
+- Mobile routes must only expose user-safe poster/worker behavior and visibility-safe fields.
+- Admin routes may expose operational fields, moderation data, dispute evidence, payout state, refund state, and audit metadata.
+- The mobile app must not call `/admin/v1/...`.
+- The admin dashboard must not depend on mobile route shapes for operational workflows; shared business logic should live in `src/modules/*`.
+- Route handlers should stay thin. Put reusable rules in modules/repositories so mobile and admin routes can share business logic without sharing HTTP contracts.
+
 ## Frontend standards
 
 - Use `zod` as the default schema and validation layer for React apps.
