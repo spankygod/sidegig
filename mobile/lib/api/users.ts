@@ -1,9 +1,23 @@
 import { request } from './client';
-import type { ProfileResponse, PublicUserProfile, ReviewSummary } from './types';
+import type { ProfileResponse, PublicUserProfile, ReviewSummary, UpdateUserProfileInput } from './types';
 
 export async function fetchMyProfile(baseUrl: string, token: string): Promise<ProfileResponse['profile']> {
   const response = await request<ProfileResponse>(baseUrl, '/v1/users/me', {
     token,
+  });
+
+  return response.profile;
+}
+
+export async function updateMyProfile(
+  baseUrl: string,
+  token: string,
+  input: UpdateUserProfileInput
+): Promise<ProfileResponse['profile']> {
+  const response = await request<ProfileResponse>(baseUrl, '/v1/users/me', {
+    method: 'PATCH',
+    token,
+    body: input,
   });
 
   return response.profile;

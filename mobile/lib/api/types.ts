@@ -25,6 +25,8 @@ export type GigStatus =
   | 'cancelled'
   | 'closed';
 
+export type ManageableGigStatus = Extract<GigStatus, 'draft' | 'published' | 'closed' | 'cancelled'>;
+
 export type ApplicationStatus =
   | 'submitted'
   | 'rejected'
@@ -47,6 +49,8 @@ export type HireStatus =
 export type PaymentStatus = 'paid' | 'refunded' | 'failed';
 
 export type PayoutStatus = 'pending' | 'paid' | 'cancelled';
+
+export type DisputeStatus = 'open' | 'under_review' | 'resolved' | 'cancelled';
 
 export type ChatThreadContext = 'application' | 'hire';
 
@@ -78,7 +82,7 @@ export interface PublicGig {
   location: {
     city: string;
     barangay: string;
-    exactPinVisible: boolean;
+    exactPinVisible: false;
   };
   poster: {
     id: string;
@@ -95,6 +99,58 @@ export interface PublicGig {
     physicalLoad: string | null;
   } | null;
   createdAt: string;
+}
+
+export interface CreateGigInput {
+  title: string;
+  category: GigCategory;
+  description: string;
+  priceAmount: number;
+  durationBucket: DurationBucket;
+  city: string;
+  barangay: string;
+  latitude: number;
+  longitude: number;
+  applicationRadiusKm?: number;
+  scheduleSummary: string;
+  supervisorPresent?: boolean;
+  ppeProvided?: boolean;
+  helperOnlyConfirmation?: boolean;
+  physicalLoad?: string | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  status?: Extract<GigStatus, 'draft' | 'published'>;
+}
+
+export interface CreatedGig extends Omit<PublicGig, 'location'> {
+  location: {
+    city: string;
+    barangay: string;
+    latitude: number;
+    longitude: number;
+    exactPinVisible: true;
+  };
+}
+
+export interface UpdateGigInput {
+  title?: string;
+  category?: GigCategory;
+  description?: string;
+  priceAmount?: number;
+  durationBucket?: DurationBucket;
+  city?: string;
+  barangay?: string;
+  latitude?: number;
+  longitude?: number;
+  applicationRadiusKm?: number;
+  scheduleSummary?: string;
+  supervisorPresent?: boolean;
+  ppeProvided?: boolean;
+  helperOnlyConfirmation?: boolean;
+  physicalLoad?: string | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  status?: ManageableGigStatus;
 }
 
 export interface OwnedGig {
@@ -172,6 +228,17 @@ export interface PublicUserProfile {
     jobsCompleted: number;
     responseRate: number;
   };
+}
+
+export interface UpdateUserProfileInput {
+  displayName?: string;
+  city?: string | null;
+  barangay?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  serviceRadiusKm?: number;
+  bio?: string | null;
+  skills?: string[];
 }
 
 export interface HireWorkDetail {
@@ -292,7 +359,7 @@ export interface DisputeSummary {
   workerId: string;
   reason: string;
   details: string | null;
-  status: 'open' | 'under_review' | 'resolved' | 'cancelled';
+  status: DisputeStatus;
   resolution: string | null;
   resolvedAt: string | null;
   createdAt: string;

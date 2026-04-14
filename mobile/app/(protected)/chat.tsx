@@ -20,11 +20,9 @@ type Conversation = {
   avatarTone: string;
   contextLabel: string;
   initials: string;
-  isUnread?: boolean;
   lastMessage: string;
   name: string;
   time: string;
-  unreadCount?: number;
 };
 
 const avatarTones = ['#dbe8fb', '#e8eef9', '#edf3fb', '#e3eefc'];
@@ -130,52 +128,27 @@ function MessageRow({
               color: palette.textStrong,
               fontFamily: Fonts.rounded,
               fontSize: 16,
-              fontWeight: conversation.isUnread ? '800' : '700',
+              fontWeight: '700',
             }}>
             {conversation.name}
           </Text>
 
-          <View style={{ alignItems: 'center', flexDirection: 'row', gap: 10 }}>
-            <Text
-              selectable
-              style={{
-                color: palette.mutedSoft,
-                fontFamily: Fonts.sans,
-                fontSize: 12,
-              }}>
-              {conversation.time}
-            </Text>
-            {conversation.unreadCount ? (
-              <View
-                style={{
-                  alignItems: 'center',
-                  backgroundColor: palette.accent,
-                  borderRadius: 999,
-                  height: 20,
-                  justifyContent: 'center',
-                  minWidth: 20,
-                  paddingHorizontal: 6,
-                }}>
-                <Text
-                  selectable
-                  style={{
-                    color: palette.inverseText,
-                    fontFamily: Fonts.rounded,
-                    fontSize: 11,
-                    fontWeight: '800',
-                  }}>
-                  {conversation.unreadCount}
-                </Text>
-              </View>
-            ) : null}
-          </View>
+          <Text
+            selectable
+            style={{
+              color: palette.mutedSoft,
+              fontFamily: Fonts.sans,
+              fontSize: 12,
+            }}>
+            {conversation.time}
+          </Text>
         </View>
 
         <Text
           selectable
           numberOfLines={2}
           style={{
-            color: conversation.isUnread ? palette.text : palette.muted,
+            color: palette.muted,
             fontFamily: Fonts.sans,
             fontSize: 14,
             lineHeight: 20,

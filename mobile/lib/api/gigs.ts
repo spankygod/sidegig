@@ -1,6 +1,8 @@
 import { request } from './client';
 import type {
   ApplicationStatus,
+  CreatedGig,
+  CreateGigInput,
   GigCategory,
   GigStatus,
   HireSummary,
@@ -9,6 +11,7 @@ import type {
   PaymentSummary,
   PosterGigApplicationSummary,
   PublicGig,
+  UpdateGigInput,
 } from './types';
 
 export async function fetchPublicGigs(
@@ -71,6 +74,39 @@ export async function fetchMyGigs(
   });
 
   return response.gigs;
+}
+
+export async function fetchMyGig(baseUrl: string, token: string, gigId: string): Promise<OwnedGig> {
+  const response = await request<{ gig: OwnedGig }>(baseUrl, `/v1/gigs/mine/${gigId}`, {
+    token,
+  });
+
+  return response.gig;
+}
+
+export async function createGig(baseUrl: string, token: string, input: CreateGigInput): Promise<CreatedGig> {
+  const response = await request<{ gig: CreatedGig }>(baseUrl, '/v1/gigs', {
+    method: 'POST',
+    token,
+    body: input,
+  });
+
+  return response.gig;
+}
+
+export async function updateMyGig(
+  baseUrl: string,
+  token: string,
+  gigId: string,
+  input: UpdateGigInput
+): Promise<OwnedGig> {
+  const response = await request<{ gig: OwnedGig }>(baseUrl, `/v1/gigs/mine/${gigId}`, {
+    method: 'PATCH',
+    token,
+    body: input,
+  });
+
+  return response.gig;
 }
 
 export async function fetchGigApplicationsForPoster(

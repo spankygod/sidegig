@@ -2,6 +2,7 @@ export * from './applications';
 export * from './auth';
 export * from './chat';
 export * from './client';
+export * from './disputes';
 export * from './formatting';
 export * from './gigs';
 export * from './health';
