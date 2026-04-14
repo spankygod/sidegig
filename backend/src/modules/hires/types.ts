@@ -24,3 +24,69 @@ export interface HireSummary {
   createdAt: string
   updatedAt: string
 }
+
+export interface HireWorkDetail {
+  viewerRole: 'poster' | 'worker'
+  hire: HireSummary
+  gig: {
+    id: string
+    title: string
+    category: string
+    description: string
+    priceAmount: number
+    currency: 'PHP'
+    durationBucket: string
+    status: string
+    applicationRadiusKm: number
+    scheduleSummary: string
+    startsAt: string | null
+    endsAt: string | null
+    location: {
+      city: string
+      barangay: string
+      latitude: number
+      longitude: number
+      exactPinVisible: true
+    }
+    construction: {
+      supervisorPresent: boolean
+      ppeProvided: boolean
+      helperOnlyConfirmation: boolean
+      physicalLoad: string | null
+    } | null
+    createdAt: string
+    updatedAt: string
+  }
+  application: {
+    id: string
+    status: string
+    intro: string
+    availability: string
+    createdAt: string
+    updatedAt: string
+  }
+  poster: {
+    id: string
+    displayName: string
+    city: string | null
+    barangay: string | null
+    stats: {
+      rating: number
+      reviewCount: number
+      jobsCompleted: number
+      responseRate: number
+    }
+  }
+  worker: {
+    id: string
+    displayName: string
+    city: string | null
+    barangay: string | null
+    stats: {
+      rating: number
+      reviewCount: number
+      jobsCompleted: number
+      responseRate: number
+    }
+  }
+}

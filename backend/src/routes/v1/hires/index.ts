@@ -3,6 +3,7 @@ import {
   acceptFundedHire,
   acceptHireCompletion,
   disputeHireCompletion,
+  getHireWorkDetail,
   getUserHireById,
   listUserHires,
   markHireDone,
@@ -101,6 +102,29 @@ const hiresRoutes: FastifyPluginAsync = async (fastify) => {
 
     return {
       hire
+    }
+  })
+
+  fastify.get<{ Params: HireParams }>('/:hireId/work-detail', {
+    onRequest: [fastify.authenticate],
+    schema: {
+      params: hireParamsSchema
+    }
+  }, async function (request, reply) {
+    await ensureUserProfile(fastify.db, request.authUser!)
+
+    const workDetail = await getHireWorkDetail(fastify.db, {
+      hireId: request.params.hireId,
+      userId: request.authUser!.id
+    })
+
+    if (workDetail == null) {
+      reply.notFound('Hire work detail not found')
+      return
+    }
+
+    return {
+      workDetail
     }
   })
 

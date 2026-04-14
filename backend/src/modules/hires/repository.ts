@@ -1,5 +1,5 @@
 import type { Pool } from 'pg'
-import type { HireStatus, HireSummary } from './types'
+import type { HireStatus, HireSummary, HireWorkDetail } from './types'
 
 type HireRow = {
   id: string
@@ -11,6 +11,49 @@ type HireRow = {
   funded_at: Date | string | null
   created_at: Date | string
   updated_at: Date | string
+}
+
+type HireWorkDetailRow = HireRow & {
+  gig_title: string
+  gig_category: string
+  gig_description: string
+  gig_price_amount: number
+  gig_currency: 'PHP'
+  gig_duration_bucket: string
+  gig_status: string
+  gig_application_radius_km: number
+  gig_schedule_summary: string
+  gig_city: string
+  gig_barangay: string
+  gig_latitude: string | number
+  gig_longitude: string | number
+  gig_supervisor_present: boolean
+  gig_ppe_provided: boolean
+  gig_helper_only_confirmation: boolean
+  gig_physical_load: string | null
+  gig_starts_at: Date | string | null
+  gig_ends_at: Date | string | null
+  gig_created_at: Date | string
+  gig_updated_at: Date | string
+  application_status: string
+  application_intro: string
+  application_availability: string
+  application_created_at: Date | string
+  application_updated_at: Date | string
+  poster_display_name: string
+  poster_city: string | null
+  poster_barangay: string | null
+  poster_rating: string | number | null
+  poster_review_count: number | null
+  poster_jobs_completed: number | null
+  poster_response_rate: number | null
+  worker_display_name: string
+  worker_city: string | null
+  worker_barangay: string | null
+  worker_rating: string | number | null
+  worker_review_count: number | null
+  worker_jobs_completed: number | null
+  worker_response_rate: number | null
 }
 
 type HireTransitionInput = {
@@ -37,6 +80,76 @@ function mapHire (row: HireRow): HireSummary {
     fundedAt: row.funded_at == null ? null : toIsoString(row.funded_at),
     createdAt: toIsoString(row.created_at),
     updatedAt: toIsoString(row.updated_at)
+  }
+}
+
+function mapHireWorkDetail (row: HireWorkDetailRow, userId: string): HireWorkDetail {
+  return {
+    viewerRole: row.poster_id === userId ? 'poster' : 'worker',
+    hire: mapHire(row),
+    gig: {
+      id: row.gig_id,
+      title: row.gig_title,
+      category: row.gig_category,
+      description: row.gig_description,
+      priceAmount: row.gig_price_amount,
+      currency: row.gig_currency,
+      durationBucket: row.gig_duration_bucket,
+      status: row.gig_status,
+      applicationRadiusKm: row.gig_application_radius_km,
+      scheduleSummary: row.gig_schedule_summary,
+      startsAt: row.gig_starts_at == null ? null : toIsoString(row.gig_starts_at),
+      endsAt: row.gig_ends_at == null ? null : toIsoString(row.gig_ends_at),
+      location: {
+        city: row.gig_city,
+        barangay: row.gig_barangay,
+        latitude: Number(row.gig_latitude),
+        longitude: Number(row.gig_longitude),
+        exactPinVisible: true
+      },
+      construction: row.gig_category === 'construction_helper'
+        ? {
+            supervisorPresent: row.gig_supervisor_present,
+            ppeProvided: row.gig_ppe_provided,
+            helperOnlyConfirmation: row.gig_helper_only_confirmation,
+            physicalLoad: row.gig_physical_load
+          }
+        : null,
+      createdAt: toIsoString(row.gig_created_at),
+      updatedAt: toIsoString(row.gig_updated_at)
+    },
+    application: {
+      id: row.application_id,
+      status: row.application_status,
+      intro: row.application_intro,
+      availability: row.application_availability,
+      createdAt: toIsoString(row.application_created_at),
+      updatedAt: toIsoString(row.application_updated_at)
+    },
+    poster: {
+      id: row.poster_id,
+      displayName: row.poster_display_name,
+      city: row.poster_city,
+      barangay: row.poster_barangay,
+      stats: {
+        rating: Number(row.poster_rating ?? 0),
+        reviewCount: row.poster_review_count ?? 0,
+        jobsCompleted: row.poster_jobs_completed ?? 0,
+        responseRate: row.poster_response_rate ?? 0
+      }
+    },
+    worker: {
+      id: row.worker_id,
+      displayName: row.worker_display_name,
+      city: row.worker_city,
+      barangay: row.worker_barangay,
+      stats: {
+        rating: Number(row.worker_rating ?? 0),
+        reviewCount: row.worker_review_count ?? 0,
+        jobsCompleted: row.worker_jobs_completed ?? 0,
+        responseRate: row.worker_response_rate ?? 0
+      }
+    }
   }
 }
 
@@ -294,6 +407,85 @@ export async function getUserHireById (
   }
 
   return mapHire(result.rows[0])
+}
+
+export async function getHireWorkDetail (
+  db: Pool,
+  input: {
+    hireId: string
+    userId: string
+  }
+): Promise<HireWorkDetail | null> {
+  const result = await db.query<HireWorkDetailRow>(
+    `
+      select
+        h.id,
+        h.gig_id,
+        h.application_id,
+        h.poster_id,
+        h.worker_id,
+        h.status,
+        h.funded_at,
+        h.created_at,
+        h.updated_at,
+        g.title as gig_title,
+        g.category as gig_category,
+        g.description as gig_description,
+        g.price_amount as gig_price_amount,
+        g.currency as gig_currency,
+        g.duration_bucket as gig_duration_bucket,
+        g.status as gig_status,
+        g.application_radius_km as gig_application_radius_km,
+        g.schedule_summary as gig_schedule_summary,
+        g.city as gig_city,
+        g.barangay as gig_barangay,
+        g.latitude as gig_latitude,
+        g.longitude as gig_longitude,
+        g.supervisor_present as gig_supervisor_present,
+        g.ppe_provided as gig_ppe_provided,
+        g.helper_only_confirmation as gig_helper_only_confirmation,
+        g.physical_load as gig_physical_load,
+        g.starts_at as gig_starts_at,
+        g.ends_at as gig_ends_at,
+        g.created_at as gig_created_at,
+        g.updated_at as gig_updated_at,
+        ga.status as application_status,
+        ga.intro as application_intro,
+        ga.availability as application_availability,
+        ga.created_at as application_created_at,
+        ga.updated_at as application_updated_at,
+        poster.display_name as poster_display_name,
+        poster.city as poster_city,
+        poster.barangay as poster_barangay,
+        poster_stats.rating as poster_rating,
+        poster_stats.review_count as poster_review_count,
+        poster_stats.jobs_completed as poster_jobs_completed,
+        poster_stats.response_rate as poster_response_rate,
+        worker.display_name as worker_display_name,
+        worker.city as worker_city,
+        worker.barangay as worker_barangay,
+        worker_stats.rating as worker_rating,
+        worker_stats.review_count as worker_review_count,
+        worker_stats.jobs_completed as worker_jobs_completed,
+        worker_stats.response_rate as worker_response_rate
+      from public.hires h
+      inner join public.gig_posts g on g.id = h.gig_id
+      inner join public.gig_applications ga on ga.id = h.application_id
+      inner join public.profiles poster on poster.id = h.poster_id
+      inner join public.profiles worker on worker.id = h.worker_id
+      left join public.user_stats poster_stats on poster_stats.user_id = h.poster_id
+      left join public.user_stats worker_stats on worker_stats.user_id = h.worker_id
+      where h.id = $1
+        and (h.poster_id = $2 or h.worker_id = $2)
+    `,
+    [input.hireId, input.userId]
+  )
+
+  if (result.rowCount === 0) {
+    return null
+  }
+
+  return mapHireWorkDetail(result.rows[0], input.userId)
 }
 
 export async function acceptFundedHire (
