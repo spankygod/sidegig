@@ -15,6 +15,12 @@ import { openHireDispute } from '../../../modules/disputes/repository'
 import { createHireReview } from '../../../modules/reviews/repository'
 import { createNotification } from '../../../modules/notifications/repository'
 import { findContactDetailViolationInFields, formatModerationViolation } from '../../../modules/moderation/policy'
+import {
+  createHireMilestone,
+  listHireMilestones,
+  updateHireMilestoneStatus
+} from '../../../modules/milestones/repository'
+import { HIRE_MILESTONE_STATUSES, type HireMilestoneStatus } from '../../../modules/milestones/types'
 
 type HireParams = {
   hireId: string
@@ -39,12 +45,36 @@ type CreateReviewBody = {
   comment?: string | null
 }
 
+type MilestoneParams = HireParams & {
+  milestoneId: string
+}
+
+type CreateMilestoneBody = {
+  title: string
+  description?: string | null
+  dueAt?: string | null
+}
+
+type UpdateMilestoneStatusBody = {
+  status: HireMilestoneStatus
+}
+
 const hireParamsSchema = {
   type: 'object',
   additionalProperties: false,
   required: ['hireId'],
   properties: {
     hireId: { type: 'string', format: 'uuid' }
+  }
+}
+
+const milestoneParamsSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['hireId', 'milestoneId'],
+  properties: {
+    hireId: { type: 'string', format: 'uuid' },
+    milestoneId: { type: 'string', format: 'uuid' }
   }
 }
 
@@ -138,6 +168,130 @@ const hiresRoutes: FastifyPluginAsync = async (fastify) => {
 
     return {
       workDetail
+    }
+  })
+
+  fastify.get<{ Params: HireParams }>('/:hireId/milestones', {
+    onRequest: [fastify.authenticate],
+    schema: {
+      params: hireParamsSchema
+    }
+  }, async function (request, reply) {
+    await ensureUserProfile(fastify.db, request.authUser!)
+
+    const milestones = await listHireMilestones(fastify.db, {
+      hireId: request.params.hireId,
+      userId: request.authUser!.id
+    })
+
+    if (milestones == null) {
+      reply.notFound('Hire not found')
+      return
+    }
+
+    return {
+      milestones
+    }
+  })
+
+  fastify.post<{ Params: HireParams, Body: CreateMilestoneBody }>('/:hireId/milestones', {
+    onRequest: [fastify.authenticate],
+    schema: {
+      params: hireParamsSchema,
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['title'],
+        properties: {
+          title: { type: 'string', minLength: 3, maxLength: 120 },
+          description: { anyOf: [{ type: 'string', minLength: 1, maxLength: 1000 }, { type: 'null' }] },
+          dueAt: { anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }] }
+        }
+      }
+    }
+  }, async function (request, reply) {
+    await ensureUserProfile(fastify.db, request.authUser!)
+
+    const moderationViolation = findContactDetailViolationInFields([
+      { label: 'Milestone title', value: request.body.title },
+      { label: 'Milestone description', value: request.body.description }
+    ])
+
+    if (moderationViolation != null) {
+      reply.badRequest(formatModerationViolation(moderationViolation))
+      return
+    }
+
+    const result = await createHireMilestone(fastify.db, {
+      hireId: request.params.hireId,
+      posterId: request.authUser!.id,
+      title: request.body.title,
+      description: request.body.description,
+      dueAt: request.body.dueAt
+    })
+
+    if (result == null) {
+      reply.conflict('Only the poster can add milestones to an active hire')
+      return
+    }
+
+    await createNotification(fastify.db, {
+      userId: result.notifyUserId,
+      actorId: request.authUser!.id,
+      type: 'hire_updated',
+      entityType: 'milestone',
+      entityId: result.milestone.id,
+      title: 'New milestone',
+      body: 'A milestone was added to your hire.'
+    })
+
+    reply.code(201)
+
+    return {
+      milestone: result.milestone
+    }
+  })
+
+  fastify.post<{ Params: MilestoneParams, Body: UpdateMilestoneStatusBody }>('/:hireId/milestones/:milestoneId/status', {
+    onRequest: [fastify.authenticate],
+    schema: {
+      params: milestoneParamsSchema,
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['status'],
+        properties: {
+          status: { type: 'string', enum: [...HIRE_MILESTONE_STATUSES] }
+        }
+      }
+    }
+  }, async function (request, reply) {
+    await ensureUserProfile(fastify.db, request.authUser!)
+
+    const result = await updateHireMilestoneStatus(fastify.db, {
+      hireId: request.params.hireId,
+      milestoneId: request.params.milestoneId,
+      userId: request.authUser!.id,
+      status: request.body.status
+    })
+
+    if (result == null) {
+      reply.conflict('Milestone status cannot be updated')
+      return
+    }
+
+    await createNotification(fastify.db, {
+      userId: result.notifyUserId,
+      actorId: request.authUser!.id,
+      type: 'hire_updated',
+      entityType: 'milestone',
+      entityId: result.milestone.id,
+      title: 'Milestone updated',
+      body: `A milestone was marked ${result.milestone.status}.`
+    })
+
+    return {
+      milestone: result.milestone
     }
   })
 

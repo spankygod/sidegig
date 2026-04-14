@@ -75,6 +75,13 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'system'
 ])
 
+export const hireMilestoneStatusEnum = pgEnum('hire_milestone_status', [
+  'pending',
+  'in_progress',
+  'completed',
+  'cancelled'
+])
+
 export const profiles = pgTable('profiles', {
   id: uuid('id').primaryKey().references(() => authUsers.id, { onDelete: 'cascade' }),
   displayName: text('display_name').notNull(),
@@ -257,6 +264,22 @@ export const notifications = pgTable('notifications', {
   userReadAtIdx: index('notifications_user_read_at_idx').on(table.userId, table.readAt)
 }))
 
+export const hireMilestones = pgTable('hire_milestones', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  hireId: uuid('hire_id').notNull().references(() => hires.id, { onDelete: 'cascade' }),
+  createdBy: uuid('created_by').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  description: text('description'),
+  status: hireMilestoneStatusEnum('status').notNull().default('pending'),
+  dueAt: timestamp('due_at', { withTimezone: true }),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+}, (table) => ({
+  hireStatusIdx: index('hire_milestones_hire_status_idx').on(table.hireId, table.status),
+  createdByIdx: index('hire_milestones_created_by_idx').on(table.createdBy)
+}))
+
 export const authUsersRelations = relations(authUsers, ({ many, one }) => ({
   profile: one(profiles, {
     fields: [authUsers.id],
@@ -268,7 +291,8 @@ export const authUsersRelations = relations(authUsers, ({ many, one }) => ({
   workerHires: many(hires),
   openedDisputes: many(disputes),
   authoredReviews: many(reviews),
-  notifications: many(notifications)
+  notifications: many(notifications),
+  createdMilestones: many(hireMilestones)
 }))
 
 export const profilesRelations = relations(profiles, ({ one }) => ({
@@ -337,7 +361,8 @@ export const hiresRelations = relations(hires, ({ one, many }) => ({
     fields: [hires.id],
     references: [disputes.hireId]
   }),
-  reviews: many(reviews)
+  reviews: many(reviews),
+  milestones: many(hireMilestones)
 }))
 
 export const reviewsRelations = relations(reviews, ({ one }) => ({
@@ -362,6 +387,17 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
   actor: one(authUsers, {
     fields: [notifications.actorId],
+    references: [authUsers.id]
+  })
+}))
+
+export const hireMilestonesRelations = relations(hireMilestones, ({ one }) => ({
+  hire: one(hires, {
+    fields: [hireMilestones.hireId],
+    references: [hires.id]
+  }),
+  createdByUser: one(authUsers, {
+    fields: [hireMilestones.createdBy],
     references: [authUsers.id]
   })
 }))
@@ -427,7 +463,8 @@ export const schema = {
   chatMessages,
   disputes,
   reviews,
-  notifications
+  notifications,
+  hireMilestones
 }
 
 export type DrizzleSchema = typeof schema
