@@ -53,6 +53,11 @@ export const hireStatusEnum = pgEnum('hire_status', [
   'paid_out'
 ])
 
+export const chatThreadContextEnum = pgEnum('chat_thread_context', [
+  'application',
+  'hire'
+])
+
 export const profiles = pgTable('profiles', {
   id: uuid('id').primaryKey().references(() => authUsers.id, { onDelete: 'cascade' }),
   displayName: text('display_name').notNull(),
@@ -151,6 +156,37 @@ export const hires = pgTable('hires', {
   workerStatusIdx: index('hires_worker_status_idx').on(table.workerId, table.status)
 }))
 
+export const chatThreads = pgTable('chat_threads', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  contextType: chatThreadContextEnum('context_type').notNull(),
+  applicationId: uuid('application_id').references(() => gigApplications.id, { onDelete: 'cascade' }),
+  hireId: uuid('hire_id').references(() => hires.id, { onDelete: 'cascade' }),
+  posterId: uuid('poster_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
+  workerId: uuid('worker_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+}, (table) => ({
+  applicationUnique: unique('chat_threads_application_id_unique').on(table.applicationId),
+  hireUnique: unique('chat_threads_hire_id_unique').on(table.hireId),
+  posterUpdatedAtIdx: index('chat_threads_poster_updated_at_idx').on(table.posterId, table.updatedAt),
+  workerUpdatedAtIdx: index('chat_threads_worker_updated_at_idx').on(table.workerId, table.updatedAt),
+  contextCheck: check(
+    'chat_threads_context_check',
+    sql`(${table.contextType} = 'application' and ${table.applicationId} is not null and ${table.hireId} is null) or (${table.contextType} = 'hire' and ${table.hireId} is not null and ${table.applicationId} is null)`
+  )
+}))
+
+export const chatMessages = pgTable('chat_messages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  threadId: uuid('thread_id').notNull().references(() => chatThreads.id, { onDelete: 'cascade' }),
+  senderId: uuid('sender_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
+  body: text('body').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, (table) => ({
+  threadCreatedAtIdx: index('chat_messages_thread_created_at_idx').on(table.threadId, table.createdAt),
+  senderCreatedAtIdx: index('chat_messages_sender_created_at_idx').on(table.senderId, table.createdAt)
+}))
+
 export const authUsersRelations = relations(authUsers, ({ many, one }) => ({
   profile: one(profiles, {
     fields: [authUsers.id],
@@ -226,13 +262,46 @@ export const hiresRelations = relations(hires, ({ one }) => ({
   })
 }))
 
+export const chatThreadsRelations = relations(chatThreads, ({ one, many }) => ({
+  application: one(gigApplications, {
+    fields: [chatThreads.applicationId],
+    references: [gigApplications.id]
+  }),
+  hire: one(hires, {
+    fields: [chatThreads.hireId],
+    references: [hires.id]
+  }),
+  poster: one(authUsers, {
+    fields: [chatThreads.posterId],
+    references: [authUsers.id]
+  }),
+  worker: one(authUsers, {
+    fields: [chatThreads.workerId],
+    references: [authUsers.id]
+  }),
+  messages: many(chatMessages)
+}))
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  thread: one(chatThreads, {
+    fields: [chatMessages.threadId],
+    references: [chatThreads.id]
+  }),
+  sender: one(authUsers, {
+    fields: [chatMessages.senderId],
+    references: [authUsers.id]
+  })
+}))
+
 export const schema = {
   authUsers,
   profiles,
   userStats,
   gigPosts,
   gigApplications,
-  hires
+  hires,
+  chatThreads,
+  chatMessages
 }
 
 export type DrizzleSchema = typeof schema
