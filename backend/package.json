@@ -4,7 +4,7 @@
   "description": "This project was bootstrapped with Fastify-CLI.",
   "main": "src/app.ts",
   "scripts": {
-    "test": "npm run build:ts",
+    "test": "npm run build:ts && node --test \"dist/src/**/*.test.js\"",
     "start": "npm run build:ts && fastify start -l info dist/src/app.js",
     "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
     "build:ts": "npm run clean && tsc",
