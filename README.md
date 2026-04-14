@@ -30,7 +30,7 @@ The MVP is intentionally strict about privacy and transaction capture:
 - `backend/`: API, business logic, payments, chat, moderation, and admin auth
 - `admin-dashboard/`: internal operations panel for disputes, payouts, moderation, and support
 - `landing/`: public marketing site and waitlist/SEO surface
-- `supabase/`: SQL migrations and Supabase-specific database setup
+- `backend/drizzle/`: Drizzle schema and SQL migrations
 - `docs/`: product, payment, and architecture decisions
 
 ## Recommended stack
