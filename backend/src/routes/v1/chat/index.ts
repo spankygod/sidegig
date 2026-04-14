@@ -8,6 +8,7 @@ import {
   listUserChatThreads
 } from '../../../modules/chat/repository'
 import { ensureUserProfile } from '../../../modules/users/repository'
+import { createNotification } from '../../../modules/notifications/repository'
 
 type ApplicationParams = {
   applicationId: string
@@ -158,21 +159,31 @@ const chatRoutes: FastifyPluginAsync = async (fastify) => {
       return
     }
 
-    const message = await createThreadMessage(fastify.db, {
+    const delivery = await createThreadMessage(fastify.db, {
       body,
       senderId: request.authUser!.id,
       threadId: request.params.threadId
     })
 
-    if (message == null) {
+    if (delivery == null) {
       reply.notFound('Chat thread not found')
       return
     }
 
+    await createNotification(fastify.db, {
+      userId: delivery.recipientId,
+      actorId: request.authUser!.id,
+      type: 'chat_message',
+      entityType: 'chat_thread',
+      entityId: request.params.threadId,
+      title: 'New message',
+      body: 'You have a new chat message.'
+    })
+
     reply.code(201)
 
     return {
-      message
+      message: delivery.message
     }
   })
 }

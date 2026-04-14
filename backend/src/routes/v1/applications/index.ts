@@ -8,6 +8,7 @@ import {
 } from '../../../modules/applications/repository'
 import { getGigEligibilityForWorker } from '../../../modules/gigs/repository'
 import { ensureUserProfile } from '../../../modules/users/repository'
+import { createNotification } from '../../../modules/notifications/repository'
 
 type CreateApplicationBody = {
   gigId: string
@@ -107,6 +108,16 @@ const applicationsRoutes: FastifyPluginAsync = async (fastify) => {
       )
 
       reply.code(201)
+
+      await createNotification(fastify.db, {
+        userId: gig.posterId,
+        actorId: request.authUser!.id,
+        type: 'application_received',
+        entityType: 'application',
+        entityId: application.id,
+        title: 'New application',
+        body: 'A worker applied to your gig.'
+      })
 
       return {
         application

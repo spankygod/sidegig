@@ -23,3 +23,8 @@ export interface ChatMessageSummary {
   body: string
   createdAt: string
 }
+
+export interface ChatMessageDelivery {
+  message: ChatMessageSummary
+  recipientId: string
+}

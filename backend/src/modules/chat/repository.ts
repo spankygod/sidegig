@@ -1,5 +1,5 @@
 import type { Pool } from 'pg'
-import type { ChatMessageSummary, ChatThreadContext, ChatThreadSummary } from './types'
+import type { ChatMessageDelivery, ChatMessageSummary, ChatThreadContext, ChatThreadSummary } from './types'
 
 type ChatThreadRow = {
   id: string
@@ -18,6 +18,11 @@ type ChatMessageRow = {
   sender_id: string
   body: string
   created_at: Date | string
+}
+
+type ChatThreadAccessRow = {
+  poster_id: string
+  worker_id: string
 }
 
 function toIsoString (value: Date | string): string {
@@ -235,15 +240,17 @@ export async function createThreadMessage (
     senderId: string
     threadId: string
   }
-): Promise<ChatMessageSummary | null> {
+): Promise<ChatMessageDelivery | null> {
   const client = await db.connect()
 
   try {
     await client.query('begin')
 
-    const accessResult = await client.query(
+    const accessResult = await client.query<ChatThreadAccessRow>(
       `
-        select 1
+        select
+          poster_id,
+          worker_id
         from public.chat_threads
         where id = $1
           and (poster_id = $2 or worker_id = $2)
@@ -256,6 +263,9 @@ export async function createThreadMessage (
       await client.query('rollback')
       return null
     }
+
+    const thread = accessResult.rows[0]
+    const recipientId = thread.poster_id === input.senderId ? thread.worker_id : thread.poster_id
 
     const messageResult = await client.query<ChatMessageRow>(
       `
@@ -286,7 +296,10 @@ export async function createThreadMessage (
 
     await client.query('commit')
 
-    return mapMessage(messageResult.rows[0])
+    return {
+      message: mapMessage(messageResult.rows[0]),
+      recipientId
+    }
   } catch (error) {
     await client.query('rollback')
     throw error

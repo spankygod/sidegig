@@ -13,6 +13,7 @@ import { HIRE_STATUSES, type HireStatus, type HireSummary } from '../../../modul
 import { ensureUserProfile } from '../../../modules/users/repository'
 import { openHireDispute } from '../../../modules/disputes/repository'
 import { createHireReview } from '../../../modules/reviews/repository'
+import { createNotification } from '../../../modules/notifications/repository'
 
 type HireParams = {
   hireId: string
@@ -145,12 +146,26 @@ const hiresRoutes: FastifyPluginAsync = async (fastify) => {
       params: hireParamsSchema
     }
   }, async function (request, reply) {
-    return await runHireAction(
+    const result = await runHireAction(
       request,
       reply,
       async ({ hireId, userId }) => await acceptFundedHire(fastify.db, { hireId, workerId: userId }),
       'Only the hired worker can accept a funded hire'
     )
+
+    if (result?.hire != null) {
+      await createNotification(fastify.db, {
+        userId: result.hire.posterId,
+        actorId: request.authUser!.id,
+        type: 'hire_updated',
+        entityType: 'hire',
+        entityId: result.hire.id,
+        title: 'Hire accepted',
+        body: 'Your worker accepted the hire.'
+      })
+    }
+
+    return result
   })
 
   fastify.post<{ Params: HireParams }>('/:hireId/start', {
@@ -159,12 +174,26 @@ const hiresRoutes: FastifyPluginAsync = async (fastify) => {
       params: hireParamsSchema
     }
   }, async function (request, reply) {
-    return await runHireAction(
+    const result = await runHireAction(
       request,
       reply,
       async ({ hireId, userId }) => await startAcceptedHire(fastify.db, { hireId, workerId: userId }),
       'Only the hired worker can start an accepted hire'
     )
+
+    if (result?.hire != null) {
+      await createNotification(fastify.db, {
+        userId: result.hire.posterId,
+        actorId: request.authUser!.id,
+        type: 'hire_updated',
+        entityType: 'hire',
+        entityId: result.hire.id,
+        title: 'Work started',
+        body: 'Your worker marked the hire in progress.'
+      })
+    }
+
+    return result
   })
 
   fastify.post<{ Params: HireParams }>('/:hireId/mark-done', {
@@ -173,12 +202,26 @@ const hiresRoutes: FastifyPluginAsync = async (fastify) => {
       params: hireParamsSchema
     }
   }, async function (request, reply) {
-    return await runHireAction(
+    const result = await runHireAction(
       request,
       reply,
       async ({ hireId, userId }) => await markHireDone(fastify.db, { hireId, workerId: userId }),
       'Only the hired worker can mark an in-progress hire as done'
     )
+
+    if (result?.hire != null) {
+      await createNotification(fastify.db, {
+        userId: result.hire.posterId,
+        actorId: request.authUser!.id,
+        type: 'hire_updated',
+        entityType: 'hire',
+        entityId: result.hire.id,
+        title: 'Work marked done',
+        body: 'Your worker marked the hire as done.'
+      })
+    }
+
+    return result
   })
 
   fastify.post<{ Params: HireParams }>('/:hireId/accept-completion', {
@@ -187,12 +230,26 @@ const hiresRoutes: FastifyPluginAsync = async (fastify) => {
       params: hireParamsSchema
     }
   }, async function (request, reply) {
-    return await runHireAction(
+    const result = await runHireAction(
       request,
       reply,
       async ({ hireId, userId }) => await acceptHireCompletion(fastify.db, { hireId, posterId: userId }),
       'Only the poster can accept a hire after the worker marks it done'
     )
+
+    if (result?.hire != null) {
+      await createNotification(fastify.db, {
+        userId: result.hire.workerId,
+        actorId: request.authUser!.id,
+        type: 'hire_updated',
+        entityType: 'hire',
+        entityId: result.hire.id,
+        title: 'Work accepted',
+        body: 'The poster accepted your completed work.'
+      })
+    }
+
+    return result
   })
 
   fastify.post<{ Params: HireParams, Body: OpenDisputeBody }>('/:hireId/dispute', {
@@ -223,6 +280,16 @@ const hiresRoutes: FastifyPluginAsync = async (fastify) => {
       reply.conflict('Only the poster can dispute a hire after the worker marks it done')
       return
     }
+
+    await createNotification(fastify.db, {
+      userId: result.hire.workerId,
+      actorId: request.authUser!.id,
+      type: 'dispute_opened',
+      entityType: 'dispute',
+      entityId: result.dispute.id,
+      title: 'Dispute opened',
+      body: 'The poster opened a dispute for this hire.'
+    })
 
     return result
   })
@@ -255,6 +322,16 @@ const hiresRoutes: FastifyPluginAsync = async (fastify) => {
       reply.conflict('Only completed hire participants can review each other once')
       return
     }
+
+    await createNotification(fastify.db, {
+      userId: review.revieweeId,
+      actorId: request.authUser!.id,
+      type: 'review_received',
+      entityType: 'review',
+      entityId: review.id,
+      title: 'New review',
+      body: 'You received a new review.'
+    })
 
     return {
       review

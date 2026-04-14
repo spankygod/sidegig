@@ -65,6 +65,16 @@ export const disputeStatusEnum = pgEnum('dispute_status', [
   'cancelled'
 ])
 
+export const notificationTypeEnum = pgEnum('notification_type', [
+  'application_received',
+  'application_reviewed',
+  'hire_updated',
+  'chat_message',
+  'dispute_opened',
+  'review_received',
+  'system'
+])
+
 export const profiles = pgTable('profiles', {
   id: uuid('id').primaryKey().references(() => authUsers.id, { onDelete: 'cascade' }),
   displayName: text('display_name').notNull(),
@@ -231,6 +241,22 @@ export const reviews = pgTable('reviews', {
   reviewerRevieweeCheck: check('reviews_reviewer_reviewee_check', sql`${table.reviewerId} <> ${table.revieweeId}`)
 }))
 
+export const notifications = pgTable('notifications', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
+  actorId: uuid('actor_id').references(() => authUsers.id, { onDelete: 'set null' }),
+  type: notificationTypeEnum('type').notNull(),
+  entityType: text('entity_type').notNull(),
+  entityId: uuid('entity_id'),
+  title: text('title').notNull(),
+  body: text('body').notNull(),
+  readAt: timestamp('read_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, (table) => ({
+  userCreatedAtIdx: index('notifications_user_created_at_idx').on(table.userId, table.createdAt),
+  userReadAtIdx: index('notifications_user_read_at_idx').on(table.userId, table.readAt)
+}))
+
 export const authUsersRelations = relations(authUsers, ({ many, one }) => ({
   profile: one(profiles, {
     fields: [authUsers.id],
@@ -241,7 +267,8 @@ export const authUsersRelations = relations(authUsers, ({ many, one }) => ({
   posterHires: many(hires),
   workerHires: many(hires),
   openedDisputes: many(disputes),
-  authoredReviews: many(reviews)
+  authoredReviews: many(reviews),
+  notifications: many(notifications)
 }))
 
 export const profilesRelations = relations(profiles, ({ one }) => ({
@@ -328,6 +355,17 @@ export const reviewsRelations = relations(reviews, ({ one }) => ({
   })
 }))
 
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(authUsers, {
+    fields: [notifications.userId],
+    references: [authUsers.id]
+  }),
+  actor: one(authUsers, {
+    fields: [notifications.actorId],
+    references: [authUsers.id]
+  })
+}))
+
 export const chatThreadsRelations = relations(chatThreads, ({ one, many }) => ({
   application: one(gigApplications, {
     fields: [chatThreads.applicationId],
@@ -388,7 +426,8 @@ export const schema = {
   chatThreads,
   chatMessages,
   disputes,
-  reviews
+  reviews,
+  notifications
 }
 
 export type DrizzleSchema = typeof schema

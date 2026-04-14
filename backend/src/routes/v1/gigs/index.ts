@@ -14,6 +14,7 @@ import {
   updatePosterGig
 } from '../../../modules/gigs/repository'
 import { fundGigHire } from '../../../modules/hires/repository'
+import { createNotification } from '../../../modules/notifications/repository'
 import {
   DURATION_BUCKETS,
   GIG_CATEGORIES,
@@ -596,6 +597,16 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
       return
     }
 
+    await createNotification(fastify.db, {
+      userId: application.worker.id,
+      actorId: request.authUser!.id,
+      type: 'application_reviewed',
+      entityType: 'application',
+      entityId: application.id,
+      title: 'Application updated',
+      body: `Your application was ${application.status}.`
+    })
+
     return {
       application
     }
@@ -649,6 +660,16 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
 
     const updatedGig = await getPosterGigById(fastify.db, request.authUser!.id, request.params.gigId)
     const applications = await listGigApplicationsForPoster(fastify.db, request.authUser!.id, request.params.gigId)
+
+    await createNotification(fastify.db, {
+      userId: hire.workerId,
+      actorId: request.authUser!.id,
+      type: 'hire_updated',
+      entityType: 'hire',
+      entityId: hire.id,
+      title: 'You were hired',
+      body: 'A poster funded your hire.'
+    })
 
     return {
       hire,
