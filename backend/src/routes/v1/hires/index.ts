@@ -14,6 +14,7 @@ import { ensureUserProfile } from '../../../modules/users/repository'
 import { openHireDispute } from '../../../modules/disputes/repository'
 import { createHireReview } from '../../../modules/reviews/repository'
 import { createNotification } from '../../../modules/notifications/repository'
+import { findContactDetailViolationInFields, formatModerationViolation } from '../../../modules/moderation/policy'
 
 type HireParams = {
   hireId: string
@@ -269,6 +270,16 @@ const hiresRoutes: FastifyPluginAsync = async (fastify) => {
   }, async function (request, reply) {
     await ensureUserProfile(fastify.db, request.authUser!)
 
+    const moderationViolation = findContactDetailViolationInFields([
+      { label: 'Dispute reason', value: request.body.reason },
+      { label: 'Dispute details', value: request.body.details }
+    ])
+
+    if (moderationViolation != null) {
+      reply.badRequest(formatModerationViolation(moderationViolation))
+      return
+    }
+
     const result = await openHireDispute(fastify.db, {
       hireId: request.params.hireId,
       posterId: request.authUser!.id,
@@ -310,6 +321,15 @@ const hiresRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, async function (request, reply) {
     await ensureUserProfile(fastify.db, request.authUser!)
+
+    const moderationViolation = findContactDetailViolationInFields([
+      { label: 'Review comment', value: request.body.comment }
+    ])
+
+    if (moderationViolation != null) {
+      reply.badRequest(formatModerationViolation(moderationViolation))
+      return
+    }
 
     const review = await createHireReview(fastify.db, {
       hireId: request.params.hireId,

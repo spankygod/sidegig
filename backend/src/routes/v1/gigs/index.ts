@@ -27,6 +27,7 @@ import {
   type UpdateGigInput
 } from '../../../modules/gigs/types'
 import { ensureUserProfile, getWorkerServiceArea } from '../../../modules/users/repository'
+import { findContactDetailViolationInFields, formatModerationViolation } from '../../../modules/moderation/policy'
 
 type ListGigsQuery = {
   category?: GigCategory
@@ -174,6 +175,17 @@ function hasContentEdits (body: UpdateGigBody): boolean {
   ]
 
   return contentKeys.some((key) => hasOwnProperty(body, key))
+}
+
+function findGigContentViolation (body: Partial<CreateGigInput | UpdateGigInput>): string | null {
+  const violation = findContactDetailViolationInFields([
+    { label: 'Gig title', value: body.title },
+    { label: 'Gig description', value: body.description },
+    { label: 'Schedule summary', value: body.scheduleSummary },
+    { label: 'Physical load', value: body.physicalLoad }
+  ])
+
+  return violation == null ? null : formatModerationViolation(violation)
 }
 
 const gigsRoutes: FastifyPluginAsync = async (fastify) => {
@@ -417,6 +429,13 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
       return
     }
 
+    const moderationViolation = findGigContentViolation(request.body)
+
+    if (moderationViolation != null) {
+      reply.badRequest(moderationViolation)
+      return
+    }
+
     const gig = await createGig(fastify.db, request.authUser!.id, {
       ...request.body,
       title: request.body.title.trim(),
@@ -517,6 +536,13 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
 
     if (constructionError != null) {
       reply.badRequest(constructionError)
+      return
+    }
+
+    const moderationViolation = findGigContentViolation(request.body)
+
+    if (moderationViolation != null) {
+      reply.badRequest(moderationViolation)
       return
     }
 

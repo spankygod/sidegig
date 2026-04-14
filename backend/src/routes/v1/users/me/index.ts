@@ -1,6 +1,7 @@
 import { type FastifyPluginAsync } from 'fastify'
 import { ensureUserProfile, updateUserProfile } from '../../../../modules/users/repository'
 import type { UpdateUserProfileInput } from '../../../../modules/users/types'
+import { findContactDetailViolationInFields, formatModerationViolation } from '../../../../modules/moderation/policy'
 
 type UpdateProfileBody = {
   displayName?: string
@@ -88,6 +89,17 @@ const usersMeRoutes: FastifyPluginAsync = async (fastify) => {
 
     if (input.displayName != null && input.displayName.length < 2) {
       reply.badRequest('Display name must be at least 2 characters long')
+      return
+    }
+
+    const moderationViolation = findContactDetailViolationInFields([
+      { label: 'Display name', value: input.displayName },
+      { label: 'Bio', value: input.bio },
+      ...(input.skills ?? []).map((skill) => ({ label: 'Skill', value: skill }))
+    ])
+
+    if (moderationViolation != null) {
+      reply.badRequest(formatModerationViolation(moderationViolation))
       return
     }
 

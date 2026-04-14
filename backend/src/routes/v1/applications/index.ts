@@ -9,6 +9,7 @@ import {
 import { getGigEligibilityForWorker } from '../../../modules/gigs/repository'
 import { ensureUserProfile } from '../../../modules/users/repository'
 import { createNotification } from '../../../modules/notifications/repository'
+import { findContactDetailViolationInFields, formatModerationViolation } from '../../../modules/moderation/policy'
 
 type CreateApplicationBody = {
   gigId: string
@@ -93,6 +94,16 @@ const applicationsRoutes: FastifyPluginAsync = async (fastify) => {
 
     if (gig.distanceKm > gig.gigApplicationRadiusKm) {
       reply.forbidden(`This gig is ${gig.distanceKm} km away, outside the poster's application radius`)
+      return
+    }
+
+    const moderationViolation = findContactDetailViolationInFields([
+      { label: 'Application intro', value: request.body.intro },
+      { label: 'Application availability', value: request.body.availability }
+    ])
+
+    if (moderationViolation != null) {
+      reply.badRequest(formatModerationViolation(moderationViolation))
       return
     }
 
