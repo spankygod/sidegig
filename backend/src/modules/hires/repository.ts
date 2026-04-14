@@ -62,6 +62,7 @@ type HireTransitionInput = {
   allowedStatuses: HireStatus[]
   gigStatus?: 'funded' | 'in_progress' | 'completed' | 'disputed'
   hireId: string
+  incrementWorkerJobsCompleted?: boolean
   nextStatus: HireStatus
 }
 
@@ -220,6 +221,26 @@ async function updateHireStatus (
       `,
       [input.hireId, input.nextStatus]
     )
+
+    if (input.incrementWorkerJobsCompleted === true) {
+      await client.query(
+        `
+          insert into public.user_stats (user_id)
+          values ($1)
+          on conflict (user_id) do nothing
+        `,
+        [current.worker_id]
+      )
+
+      await client.query(
+        `
+          update public.user_stats
+          set jobs_completed = jobs_completed + 1
+          where user_id = $1
+        `,
+        [current.worker_id]
+      )
+    }
 
     await client.query('commit')
 
@@ -550,6 +571,7 @@ export async function acceptHireCompletion (
     allowedStatuses: ['worker_marked_done'],
     gigStatus: 'completed',
     hireId: input.hireId,
+    incrementWorkerJobsCompleted: true,
     nextStatus: 'poster_accepted'
   })
 }

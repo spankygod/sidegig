@@ -12,6 +12,7 @@ import type { AuthenticatedUser } from '../../../modules/auth/types'
 import { HIRE_STATUSES, type HireStatus, type HireSummary } from '../../../modules/hires/types'
 import { ensureUserProfile } from '../../../modules/users/repository'
 import { openHireDispute } from '../../../modules/disputes/repository'
+import { createHireReview } from '../../../modules/reviews/repository'
 
 type HireParams = {
   hireId: string
@@ -29,6 +30,11 @@ type HireAction = (input: {
 type OpenDisputeBody = {
   reason: string
   details?: string | null
+}
+
+type CreateReviewBody = {
+  rating: number
+  comment?: string | null
 }
 
 const hireParamsSchema = {
@@ -219,6 +225,40 @@ const hiresRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     return result
+  })
+
+  fastify.post<{ Params: HireParams, Body: CreateReviewBody }>('/:hireId/review', {
+    onRequest: [fastify.authenticate],
+    schema: {
+      params: hireParamsSchema,
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['rating'],
+        properties: {
+          rating: { type: 'integer', minimum: 1, maximum: 5 },
+          comment: { anyOf: [{ type: 'string', minLength: 1, maxLength: 1000 }, { type: 'null' }] }
+        }
+      }
+    }
+  }, async function (request, reply) {
+    await ensureUserProfile(fastify.db, request.authUser!)
+
+    const review = await createHireReview(fastify.db, {
+      hireId: request.params.hireId,
+      reviewerId: request.authUser!.id,
+      rating: request.body.rating,
+      comment: request.body.comment
+    })
+
+    if (review == null) {
+      reply.conflict('Only completed hire participants can review each other once')
+      return
+    }
+
+    return {
+      review
+    }
   })
 }
 

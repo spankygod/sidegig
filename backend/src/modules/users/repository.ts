@@ -1,7 +1,7 @@
 import type { Pool } from 'pg'
 import { deriveDisplayName, type AuthenticatedUser } from '../auth/types'
 import { DEFAULT_SERVICE_RADIUS_KM } from '../proximity'
-import type { UpdateUserProfileInput, UserProfile } from './types'
+import type { PublicUserProfile, UpdateUserProfileInput, UserProfile } from './types'
 
 type UserProfileRow = {
   id: string
@@ -28,6 +28,23 @@ function mapUserProfile (row: UserProfileRow): UserProfile {
     latitude: row.latitude == null ? null : Number(row.latitude),
     longitude: row.longitude == null ? null : Number(row.longitude),
     serviceRadiusKm: row.service_radius_km ?? DEFAULT_SERVICE_RADIUS_KM,
+    bio: row.bio,
+    skills: row.skills ?? [],
+    stats: {
+      rating: Number(row.rating ?? 0),
+      reviewCount: row.review_count ?? 0,
+      jobsCompleted: row.jobs_completed ?? 0,
+      responseRate: row.response_rate ?? 0
+    }
+  }
+}
+
+function mapPublicUserProfile (row: UserProfileRow): PublicUserProfile {
+  return {
+    id: row.id,
+    displayName: row.display_name,
+    city: row.city,
+    barangay: row.barangay,
     bio: row.bio,
     skills: row.skills ?? [],
     stats: {
@@ -120,6 +137,40 @@ export async function getWorkerServiceArea (
     longitude: Number(row.longitude),
     serviceRadiusKm: row.service_radius_km ?? DEFAULT_SERVICE_RADIUS_KM
   }
+}
+
+export async function getPublicUserProfileById (
+  db: Pool,
+  userId: string
+): Promise<PublicUserProfile | null> {
+  const result = await db.query<UserProfileRow>(
+    `
+      select
+        p.id,
+        p.display_name,
+        p.city,
+        p.barangay,
+        null::numeric as latitude,
+        null::numeric as longitude,
+        null::int as service_radius_km,
+        p.bio,
+        p.skills,
+        us.rating,
+        us.review_count,
+        us.jobs_completed,
+        us.response_rate
+      from public.profiles p
+      left join public.user_stats us on us.user_id = p.id
+      where p.id = $1
+    `,
+    [userId]
+  )
+
+  if (result.rowCount === 0) {
+    return null
+  }
+
+  return mapPublicUserProfile(result.rows[0])
 }
 
 export async function updateUserProfile (

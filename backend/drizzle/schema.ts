@@ -214,6 +214,23 @@ export const disputes = pgTable('disputes', {
   openedByIdx: index('disputes_opened_by_idx').on(table.openedBy)
 }))
 
+export const reviews = pgTable('reviews', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  hireId: uuid('hire_id').notNull().references(() => hires.id, { onDelete: 'cascade' }),
+  reviewerId: uuid('reviewer_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
+  revieweeId: uuid('reviewee_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
+  rating: integer('rating').notNull(),
+  comment: text('comment'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+}, (table) => ({
+  hireReviewerUnique: unique('reviews_hire_id_reviewer_id_unique').on(table.hireId, table.reviewerId),
+  revieweeCreatedAtIdx: index('reviews_reviewee_created_at_idx').on(table.revieweeId, table.createdAt),
+  reviewerCreatedAtIdx: index('reviews_reviewer_created_at_idx').on(table.reviewerId, table.createdAt),
+  ratingRangeCheck: check('reviews_rating_check', sql`${table.rating} between 1 and 5`),
+  reviewerRevieweeCheck: check('reviews_reviewer_reviewee_check', sql`${table.reviewerId} <> ${table.revieweeId}`)
+}))
+
 export const authUsersRelations = relations(authUsers, ({ many, one }) => ({
   profile: one(profiles, {
     fields: [authUsers.id],
@@ -223,7 +240,8 @@ export const authUsersRelations = relations(authUsers, ({ many, one }) => ({
   gigApplications: many(gigApplications),
   posterHires: many(hires),
   workerHires: many(hires),
-  openedDisputes: many(disputes)
+  openedDisputes: many(disputes),
+  authoredReviews: many(reviews)
 }))
 
 export const profilesRelations = relations(profiles, ({ one }) => ({
@@ -271,7 +289,7 @@ export const gigApplicationsRelations = relations(gigApplications, ({ one }) => 
   })
 }))
 
-export const hiresRelations = relations(hires, ({ one }) => ({
+export const hiresRelations = relations(hires, ({ one, many }) => ({
   gig: one(gigPosts, {
     fields: [hires.gigId],
     references: [gigPosts.id]
@@ -291,6 +309,22 @@ export const hiresRelations = relations(hires, ({ one }) => ({
   dispute: one(disputes, {
     fields: [hires.id],
     references: [disputes.hireId]
+  }),
+  reviews: many(reviews)
+}))
+
+export const reviewsRelations = relations(reviews, ({ one }) => ({
+  hire: one(hires, {
+    fields: [reviews.hireId],
+    references: [hires.id]
+  }),
+  reviewer: one(authUsers, {
+    fields: [reviews.reviewerId],
+    references: [authUsers.id]
+  }),
+  reviewee: one(authUsers, {
+    fields: [reviews.revieweeId],
+    references: [authUsers.id]
   })
 }))
 
@@ -353,7 +387,8 @@ export const schema = {
   hires,
   chatThreads,
   chatMessages,
-  disputes
+  disputes,
+  reviews
 }
 
 export type DrizzleSchema = typeof schema
