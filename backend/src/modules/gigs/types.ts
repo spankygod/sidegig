@@ -1,3 +1,5 @@
+import { DEFAULT_GIG_APPLICATION_RADIUS_KM, DEFAULT_SERVICE_RADIUS_KM } from '../proximity'
+
 export const GIG_CATEGORIES = [
   'errands_personal_assistance',
   'cleaning_home_help',
@@ -17,8 +19,28 @@ export const DURATION_BUCKETS = [
   'fifteen_to_thirty_days'
 ] as const
 
+export const GIG_STATUSES = [
+  'draft',
+  'published',
+  'funded',
+  'in_progress',
+  'completed',
+  'disputed',
+  'cancelled',
+  'closed'
+] as const
+
+export const MANAGEABLE_GIG_STATUSES = [
+  'draft',
+  'published',
+  'closed',
+  'cancelled'
+] as const
+
 export type GigCategory = typeof GIG_CATEGORIES[number]
 export type DurationBucket = typeof DURATION_BUCKETS[number]
+export type GigStatus = typeof GIG_STATUSES[number]
+export type ManageableGigStatus = typeof MANAGEABLE_GIG_STATUSES[number]
 
 export interface CreateGigInput {
   title: string
@@ -30,6 +52,7 @@ export interface CreateGigInput {
   barangay: string
   latitude: number
   longitude: number
+  applicationRadiusKm?: number
   scheduleSummary: string
   supervisorPresent?: boolean
   ppeProvided?: boolean
@@ -37,11 +60,36 @@ export interface CreateGigInput {
   physicalLoad?: string | null
   startsAt?: string | null
   endsAt?: string | null
+  status?: Extract<GigStatus, 'draft' | 'published'>
+}
+
+export interface UpdateGigInput {
+  title?: string
+  category?: GigCategory
+  description?: string
+  priceAmount?: number
+  durationBucket?: DurationBucket
+  city?: string
+  barangay?: string
+  latitude?: number
+  longitude?: number
+  applicationRadiusKm?: number
+  scheduleSummary?: string
+  supervisorPresent?: boolean
+  ppeProvided?: boolean
+  helperOnlyConfirmation?: boolean
+  physicalLoad?: string | null
+  startsAt?: string | null
+  endsAt?: string | null
+  status?: ManageableGigStatus
 }
 
 export interface GigListFilters {
   category?: GigCategory
   city?: string
+  latitude?: number
+  longitude?: number
+  radiusKm?: number
   limit: number
 }
 
@@ -53,8 +101,12 @@ export interface PublicGig {
   priceAmount: number
   currency: 'PHP'
   durationBucket: DurationBucket
-  status: string
+  status: GigStatus
+  applicationRadiusKm: number
+  distanceKm: number | null
   scheduleSummary: string
+  startsAt: string | null
+  endsAt: string | null
   location: {
     city: string
     barangay: string
@@ -85,4 +137,15 @@ export interface CreatedGig extends Omit<PublicGig, 'location'> {
     longitude: number
     exactPinVisible: true
   }
+}
+
+export interface OwnedGig extends Omit<CreatedGig, 'poster' | 'distanceKm'> {
+  distanceKm: null
+  applicationCount: number
+  updatedAt: string
+}
+
+export {
+  DEFAULT_GIG_APPLICATION_RADIUS_KM,
+  DEFAULT_SERVICE_RADIUS_KM
 }

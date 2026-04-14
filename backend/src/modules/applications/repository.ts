@@ -1,9 +1,14 @@
 import type { DatabaseError, Pool } from 'pg'
-import type { CreateGigApplicationInput, GigApplicationSummary } from './types'
+import type {
+  CreateGigApplicationInput,
+  GigApplicationSummary,
+  PosterGigApplicationSummary,
+  ReviewableApplicationStatus
+} from './types'
 
 type ApplicationRow = {
   id: string
-  status: string
+  status: GigApplicationSummary['status']
   intro: string
   availability: string
   created_at: Date | string
@@ -13,6 +18,25 @@ type ApplicationRow = {
   gig_city: string
   gig_barangay: string
   gig_status: string
+}
+
+type PosterApplicationRow = {
+  id: string
+  status: PosterGigApplicationSummary['status']
+  intro: string
+  availability: string
+  created_at: Date | string
+  updated_at: Date | string
+  worker_id: string
+  worker_display_name: string
+  worker_city: string | null
+  worker_barangay: string | null
+  worker_bio: string | null
+  worker_skills: string[] | null
+  worker_rating: string | number | null
+  worker_review_count: number | null
+  worker_jobs_completed: number | null
+  worker_response_rate: number | null
 }
 
 function toIsoString (value: Date | string): string {
@@ -35,6 +59,57 @@ function mapApplication (row: ApplicationRow): GigApplicationSummary {
       status: row.gig_status
     }
   }
+}
+
+function mapPosterApplication (row: PosterApplicationRow): PosterGigApplicationSummary {
+  return {
+    id: row.id,
+    status: row.status,
+    intro: row.intro,
+    availability: row.availability,
+    createdAt: toIsoString(row.created_at),
+    updatedAt: toIsoString(row.updated_at),
+    worker: {
+      id: row.worker_id,
+      displayName: row.worker_display_name,
+      city: row.worker_city,
+      barangay: row.worker_barangay,
+      bio: row.worker_bio,
+      skills: row.worker_skills ?? [],
+      stats: {
+        rating: Number(row.worker_rating ?? 0),
+        reviewCount: row.worker_review_count ?? 0,
+        jobsCompleted: row.worker_jobs_completed ?? 0,
+        responseRate: row.worker_response_rate ?? 0
+      }
+    }
+  }
+}
+
+function posterApplicationSelect (): string {
+  return `
+    select
+      ga.id,
+      ga.status,
+      ga.intro,
+      ga.availability,
+      ga.created_at,
+      ga.updated_at,
+      p.id as worker_id,
+      p.display_name as worker_display_name,
+      p.city as worker_city,
+      p.barangay as worker_barangay,
+      p.bio as worker_bio,
+      p.skills as worker_skills,
+      us.rating as worker_rating,
+      us.review_count as worker_review_count,
+      us.jobs_completed as worker_jobs_completed,
+      us.response_rate as worker_response_rate
+    from public.gig_applications ga
+    inner join public.gig_posts g on g.id = ga.gig_id
+    inner join public.profiles p on p.id = ga.worker_id
+    left join public.user_stats us on us.user_id = p.id
+  `
 }
 
 export function isUniqueViolation (error: unknown): error is DatabaseError {
@@ -106,4 +181,92 @@ export async function listWorkerApplications (
   )
 
   return result.rows.map(mapApplication)
+}
+
+export async function listGigApplicationsForPoster (
+  db: Pool,
+  posterId: string,
+  gigId: string
+): Promise<PosterGigApplicationSummary[]> {
+  const result = await db.query<PosterApplicationRow>(
+    `
+      ${posterApplicationSelect()}
+      where g.poster_id = $1
+        and ga.gig_id = $2
+      order by
+        case ga.status
+          when 'submitted' then 0
+          when 'rejected' then 1
+          else 2
+        end,
+        ga.created_at desc
+    `,
+    [posterId, gigId]
+  )
+
+  return result.rows.map(mapPosterApplication)
+}
+
+export async function reviewGigApplication (
+  db: Pool,
+  input: {
+    posterId: string
+    gigId: string
+    applicationId: string
+    status: ReviewableApplicationStatus
+  }
+): Promise<PosterGigApplicationSummary | null> {
+  const result = await db.query<PosterApplicationRow>(
+    `
+      with updated as (
+        update public.gig_applications ga
+        set status = $4
+        where ga.id = $1
+          and ga.gig_id = $2
+          and ga.status not in ('withdrawn', 'hired', 'closed')
+          and exists (
+            select 1
+            from public.gig_posts gp
+            where gp.id = ga.gig_id
+              and gp.poster_id = $3
+              and gp.status = 'published'
+          )
+        returning ga.id
+      )
+      ${posterApplicationSelect()}
+      where g.poster_id = $3
+        and ga.gig_id = $2
+        and ga.id = $1
+        and exists (select 1 from updated)
+    `,
+    [input.applicationId, input.gigId, input.posterId, input.status]
+  )
+
+  if (result.rowCount === 0) {
+    return null
+  }
+
+  return mapPosterApplication(result.rows[0])
+}
+
+export async function closeOpenApplicationsForGig (
+  db: Pool,
+  posterId: string,
+  gigId: string
+): Promise<void> {
+  await db.query(
+    `
+      update public.gig_applications ga
+      set status = 'closed'
+      where ga.gig_id = $1
+        and ga.status = 'submitted'
+        and exists (
+          select 1
+          from public.gig_posts gp
+          where gp.id = ga.gig_id
+            and gp.poster_id = $2
+        )
+    `,
+    [gigId, posterId]
+  )
 }

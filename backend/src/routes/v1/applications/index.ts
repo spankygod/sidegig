@@ -1,6 +1,6 @@
 import { type FastifyPluginAsync } from 'fastify'
 import { createGigApplication, isUniqueViolation, listWorkerApplications } from '../../../modules/applications/repository'
-import { getGigOwnership } from '../../../modules/gigs/repository'
+import { getGigEligibilityForWorker } from '../../../modules/gigs/repository'
 import { ensureUserProfile } from '../../../modules/users/repository'
 
 type CreateApplicationBody = {
@@ -39,7 +39,7 @@ const applicationsRoutes: FastifyPluginAsync = async (fastify) => {
   }, async function (request, reply) {
     await ensureUserProfile(fastify.db, request.authUser!)
 
-    const gig = await getGigOwnership(fastify.db, request.body.gigId)
+    const gig = await getGigEligibilityForWorker(fastify.db, request.body.gigId, request.authUser!.id)
 
     if (gig == null) {
       reply.notFound('Gig not found')
@@ -51,8 +51,28 @@ const applicationsRoutes: FastifyPluginAsync = async (fastify) => {
       return
     }
 
-    if (!['published', 'shortlisting'].includes(gig.status)) {
+    if (gig.status !== 'published') {
       reply.conflict('This gig is no longer accepting applications')
+      return
+    }
+
+    if (gig.workerLatitude == null || gig.workerLongitude == null) {
+      reply.badRequest('Set your worker location before applying to gigs')
+      return
+    }
+
+    if (gig.distanceKm == null) {
+      reply.forbidden('Unable to verify your distance from this gig')
+      return
+    }
+
+    if (gig.workerServiceRadiusKm != null && gig.distanceKm > gig.workerServiceRadiusKm) {
+      reply.forbidden(`This gig is ${gig.distanceKm} km away, outside your service radius`)
+      return
+    }
+
+    if (gig.distanceKm > gig.gigApplicationRadiusKm) {
+      reply.forbidden(`This gig is ${gig.distanceKm} km away, outside the poster's application radius`)
       return
     }
 
