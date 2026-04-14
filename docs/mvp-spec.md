@@ -75,7 +75,7 @@ Worker cannot view:
 Poster can:
 
 - Accept chat requests implicitly through the application thread
-- Shortlist applicants
+- Review applicants
 - Reject applicants
 - View worker rating, completed jobs, response rate, skills, intro, and general area
 
@@ -168,7 +168,6 @@ Reviews unlock only when:
 
 - `draft`
 - `published`
-- `shortlisting`
 - `funded`
 - `in_progress`
 - `completed`
@@ -179,7 +178,6 @@ Reviews unlock only when:
 ### Application status
 
 - `submitted`
-- `shortlisted`
 - `rejected`
 - `withdrawn`
 - `hired`
@@ -218,6 +216,20 @@ Reviews unlock only when:
 - Profile
 - Notifications
 
+## Expo implementation order
+
+The Expo app should not try to ship every screen at once.
+
+Recommended order:
+
+1. Live shell: feed, search, backend connection, and profile bootstrap
+2. Auth and worker setup
+3. Gig detail, apply flow, and post gig flow
+4. Applicants list and review flow
+5. Application thread chat
+6. Fund hire and hired-job detail
+7. Completion, disputes, and reviews
+
 ## Admin MVP screens
 
 - Admin login
@@ -243,3 +255,4 @@ Reviews unlock only when:
 - Public exact address display
 - Subscription plans
 - Automated worker payout orchestration
+

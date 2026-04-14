@@ -10,7 +10,7 @@ export default fp(async (fastify) => {
 
   const supabaseAdmin = createClient(
     fastify.config.supabaseUrl,
-    fastify.config.supabaseServiceRoleKey,
+    fastify.config.supabaseSecretKey,
     {
       auth: {
         autoRefreshToken: false,

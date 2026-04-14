@@ -26,41 +26,11 @@ async function checkPostgres (fastify: Parameters<FastifyPluginAsync>[0]): Promi
   }
 }
 
-async function checkRedis (fastify: Parameters<FastifyPluginAsync>[0]): Promise<DependencyStatus> {
-  const startedAt = performance.now()
-
-  try {
-    if (fastify.redis.status === 'wait') {
-      await fastify.redis.connect()
-    }
-
-    const response = await fastify.redis.ping()
-
-    if (response !== 'PONG') {
-      throw new Error(`Unexpected Redis PING response: ${response}`)
-    }
-
-    return {
-      status: 'up',
-      latencyMs: Math.round(performance.now() - startedAt)
-    }
-  } catch (error) {
-    return {
-      status: 'down',
-      latencyMs: Math.round(performance.now() - startedAt),
-      details: error instanceof Error ? error.message : 'Unknown Redis error'
-    }
-  }
-}
-
 const healthRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/health', async function (_request, reply) {
-    const [postgres, redis] = await Promise.all([
-      checkPostgres(fastify),
-      checkRedis(fastify)
-    ])
+    const postgres = await checkPostgres(fastify)
 
-    const isHealthy = postgres.status === 'up' && redis.status === 'up'
+    const isHealthy = postgres.status === 'up'
 
     reply.code(isHealthy ? 200 : 503)
 
@@ -70,8 +40,7 @@ const healthRoutes: FastifyPluginAsync = async (fastify) => {
       status: isHealthy ? 'ok' : 'degraded',
       timestamp: new Date().toISOString(),
       dependencies: {
-        postgres,
-        redis
+        postgres
       }
     }
   })

@@ -2,7 +2,7 @@
 
 ## Monorepo shape
 
-- `mobile/`: Flutter app used by posters and workers
+- `mobile/`: Expo React Native app used by posters and workers
 - `backend/`: API, websocket chat, background jobs, and business rules
 - `admin-dashboard/`: internal operations tool
 - `landing/`: public website
@@ -11,12 +11,14 @@
 
 ### Mobile
 
-- Flutter
-- Riverpod for state management
-- GoRouter for navigation
-- Dio for API client
-- Firebase Cloud Messaging for push notifications
-- Flutter-native libraries instead of React-specific tooling
+- Expo
+- React Native
+- Expo Router for navigation
+- TanStack Query for server-state and cache management
+- Zustand for lightweight client state
+- Supabase Auth client for session handling
+- Expo Notifications for push notifications when needed
+- React Native and Expo-native libraries instead of web-only UI tooling
 
 ### Backend
 
@@ -24,10 +26,9 @@
 - Fastify
 - Supabase Auth for identity and access tokens
 - Supabase Postgres for the primary relational database
-- Redis for queues, presence, and caching
 - WebSocket transport for chat and live updates
 - `zod` for runtime validation where shared schemas are useful
-- `REST/OpenAPI` as the API contract for Flutter and React clients
+- `REST/OpenAPI` as the API contract for Expo mobile and web clients
 
 ### Admin dashboard
 
@@ -63,7 +64,7 @@
 - `auth`: Supabase token verification, auth context, and backend authorization hooks
 - `users`: profile, stats, dual-role support, visibility-safe fields
 - `gigs`: create, update, publish, close, categories, duration buckets
-- `applications`: apply, shortlist, reject, hire selection
+- `applications`: apply, review, reject, hire selection
 - `chat`: pre-hire and post-hire chat threads with masking
 - `payments`: PayMongo integration, payment records, refunds
 - `milestones`: long-running job payment segmentation
@@ -83,7 +84,7 @@
 - Use `zustand` for lightweight React client state when local component state is not enough.
 - Use `nuqs` for typed Next.js search parameter state.
 - Use `recharts` for admin analytics and operational charts.
-- Do not use `tRPC` as the default API layer in this repo because Flutter is a first-class client.
+- Do not use `tRPC` as the default API layer in this repo because Expo mobile is a first-class client.
 
 ## Initial database outline
 
@@ -130,9 +131,10 @@ After a funded hire:
 
 1. Auth and user profiles
 2. Gig creation and browsing
-3. Applications and shortlist flow
+3. Applications and review flow
 4. Chat with masking
 5. Funding and hire state transitions
 6. Reviews and dispute workflow
 7. Admin moderation and payout queue
 8. Landing site
+

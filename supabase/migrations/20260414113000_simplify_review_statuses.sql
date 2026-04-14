@@ -1,3 +1,5 @@
+drop policy if exists "gig_applications_insert_own" on public.gig_applications;
+
 do $$
 begin
   if exists (select 1 from pg_type where typname = 'gig_status') then
@@ -61,7 +63,6 @@ begin
 end
 $$;
 
-drop policy if exists "gig_applications_insert_own" on public.gig_applications;
 create policy "gig_applications_insert_own"
 on public.gig_applications
 for insert

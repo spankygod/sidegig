@@ -6,6 +6,9 @@ type UpdateProfileBody = {
   displayName?: string
   city?: string | null
   barangay?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  serviceRadiusKm?: number
   bio?: string | null
   skills?: string[]
 }
@@ -43,6 +46,9 @@ const usersMeRoutes: FastifyPluginAsync = async (fastify) => {
           displayName: { type: 'string', minLength: 2, maxLength: 50 },
           city: { anyOf: [{ type: 'string', minLength: 1, maxLength: 80 }, { type: 'null' }] },
           barangay: { anyOf: [{ type: 'string', minLength: 1, maxLength: 80 }, { type: 'null' }] },
+          latitude: { anyOf: [{ type: 'number', minimum: -90, maximum: 90 }, { type: 'null' }] },
+          longitude: { anyOf: [{ type: 'number', minimum: -180, maximum: 180 }, { type: 'null' }] },
+          serviceRadiusKm: { type: 'integer', minimum: 1, maximum: 200 },
           bio: { anyOf: [{ type: 'string', maxLength: 280 }, { type: 'null' }] },
           skills: {
             type: 'array',
@@ -55,6 +61,14 @@ const usersMeRoutes: FastifyPluginAsync = async (fastify) => {
   }, async function (request, reply) {
     await ensureUserProfile(fastify.db, request.authUser!)
 
+    const hasLatitude = Object.prototype.hasOwnProperty.call(request.body, 'latitude')
+    const hasLongitude = Object.prototype.hasOwnProperty.call(request.body, 'longitude')
+
+    if (hasLatitude !== hasLongitude) {
+      reply.badRequest('Latitude and longitude must be updated together')
+      return
+    }
+
     const input: UpdateUserProfileInput = {
       displayName: request.body.displayName?.trim(),
       city: Object.prototype.hasOwnProperty.call(request.body, 'city')
@@ -63,6 +77,9 @@ const usersMeRoutes: FastifyPluginAsync = async (fastify) => {
       barangay: Object.prototype.hasOwnProperty.call(request.body, 'barangay')
         ? request.body.barangay?.trim() ?? null
         : undefined,
+      latitude: hasLatitude ? request.body.latitude ?? null : undefined,
+      longitude: hasLongitude ? request.body.longitude ?? null : undefined,
+      serviceRadiusKm: request.body.serviceRadiusKm,
       bio: Object.prototype.hasOwnProperty.call(request.body, 'bio')
         ? request.body.bio?.trim() ?? null
         : undefined,

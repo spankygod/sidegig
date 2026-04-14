@@ -13,7 +13,7 @@ The MVP is intentionally strict about privacy and transaction capture:
 ## Product decisions locked in
 
 - Launch market: Philippines only
-- Client app: Flutter mobile
+- Client app: Expo React Native mobile
 - Roles: single account, dual role (poster and worker)
 - Job pricing: fixed price only
 - Matching: application-based
@@ -26,7 +26,7 @@ The MVP is intentionally strict about privacy and transaction capture:
 
 ## Repo layout
 
-- `mobile/`: Flutter client for posters and workers
+- `mobile/`: Expo React Native client for posters and workers
 - `backend/`: API, business logic, payments, chat, moderation, and admin auth
 - `admin-dashboard/`: internal operations panel for disputes, payouts, moderation, and support
 - `landing/`: public marketing site and waitlist/SEO surface
@@ -35,13 +35,32 @@ The MVP is intentionally strict about privacy and transaction capture:
 
 ## Recommended stack
 
-- Mobile: Flutter, Riverpod, GoRouter, Dio, Firebase Cloud Messaging
-- Backend: TypeScript, Fastify, Supabase Auth, Supabase Postgres, Redis, WebSocket chat
+- Mobile: Expo, React Native, Expo Router, Supabase Auth client, TanStack Query, Zustand
+- Backend: TypeScript, Fastify, Supabase Auth, Supabase Postgres, WebSocket chat
 - Admin dashboard: Next.js with TypeScript
 - Landing: Next.js with TypeScript
 - Storage: S3-compatible object storage for avatars and optional future attachments
 - Maps: Google Maps for post location pinning and rough-area previews
 - Payments: PayMongo for collection and refunds, admin-managed payout workflow for MVP
+
+## Current auth flow
+
+Authentication is owned by Supabase Auth, not by the backend.
+
+Flow:
+
+1. The Expo app starts Google sign-in directly with the Supabase client using the project URL and publishable key.
+2. Google authenticates the user.
+3. Supabase returns a session to the Expo app.
+4. The Expo app sends the Supabase bearer token to the backend.
+5. The backend verifies the Supabase token and serves protected app data.
+
+Rules:
+
+- The Expo app must use `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+- The backend must use its own Supabase server-side configuration to verify tokens.
+- The mobile app should not route Google sign-in through the backend unless the project deliberately switches to a backend-owned auth architecture.
+- Google sign-in on mobile should be tested in a development build or production build, not Expo Go, because the app uses the `raket://auth/callback` redirect scheme.
 
 ## Default library preferences
 
@@ -59,8 +78,8 @@ These are the default libraries for this repo unless there is a clear technical 
 
 Important exceptions:
 
-- `tRPC` is not a repo-wide default because the main client is Flutter. The backend contract should stay `REST/OpenAPI` so both Flutter and React apps can consume it cleanly.
-- React-specific libraries do not apply to `mobile/`. Flutter should use native Dart and Flutter equivalents instead.
+- `tRPC` is not a repo-wide default because the mobile client is Expo/React Native and the backend contract should stay `REST/OpenAPI` so both mobile and web clients can consume it cleanly.
+- Next.js-specific libraries and browser-only UI patterns do not apply to `mobile/`. The mobile app should use Expo and React Native equivalents instead.
 
 ## Core marketplace rule
 
@@ -124,11 +143,11 @@ The app should avoid the word `escrow` for MVP. Use `Funded`, `Protected Payment
 - Refunds and disputes are handled by admin
 - Worker payouts are admin-managed until compliance and automation are clarified
 
-See [docs/mvp-spec.md](/d:/GithubProjects/Raket/docs/mvp-spec.md), [docs/payment-and-disputes.md](/d:/GithubProjects/Raket/docs/payment-and-disputes.md), and [docs/architecture.md](/d:/GithubProjects/Raket/docs/architecture.md) for the detailed operating model.
+See [docs/mvp-spec.md](docs/mvp-spec.md), [docs/payment-and-disputes.md](docs/payment-and-disputes.md), [docs/architecture.md](docs/architecture.md), and [docs/expo-mobile-roadmap.md](docs/expo-mobile-roadmap.md) for the detailed operating model.
 
 ## Build order
 
 1. Backend foundation: auth, users, gigs, applications, chat, payments, admin
-2. Flutter mobile MVP: auth, feed, post gig, apply, chat, fund hire, my jobs
+2. Expo mobile MVP: auth, feed, post gig, apply, chat, fund hire, my jobs
 3. Admin dashboard: disputes, refunds, payouts, moderation, support
 4. Landing site: waitlist, SEO pages, and product explanation

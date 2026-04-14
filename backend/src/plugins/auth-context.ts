@@ -14,16 +14,24 @@ function getBearerToken (authorizationHeader: string | undefined): string | null
 export default fp(async (fastify) => {
   fastify.decorateRequest('authUser', null)
 
-  fastify.decorate('authenticate', async (request: FastifyRequest, reply: FastifyReply) => {
-    if (!fastify.supabaseConfigured || fastify.supabaseAdmin == null) {
-      reply.serviceUnavailable('Supabase admin client is not configured')
-      return
-    }
-
+  async function resolveAuthUser (
+    request: FastifyRequest,
+    reply: FastifyReply,
+    required: boolean
+  ): Promise<void> {
     const accessToken = getBearerToken(request.headers.authorization)
 
     if (accessToken == null) {
-      reply.unauthorized('Missing bearer token')
+      if (required) {
+        reply.unauthorized('Missing bearer token')
+      }
+
+      return
+    }
+
+    if (!fastify.supabaseConfigured || fastify.supabaseAdmin == null) {
+      reply.serviceUnavailable('Supabase admin client is not configured')
+
       return
     }
 
@@ -31,10 +39,19 @@ export default fp(async (fastify) => {
 
     if (error != null || data.user == null) {
       reply.unauthorized('Invalid or expired access token')
+
       return
     }
 
     request.authUser = toAuthenticatedUser(data.user)
+  }
+
+  fastify.decorate('authenticate', async (request: FastifyRequest, reply: FastifyReply) => {
+    await resolveAuthUser(request, reply, true)
+  })
+
+  fastify.decorate('tryAuthenticate', async (request: FastifyRequest, reply: FastifyReply) => {
+    await resolveAuthUser(request, reply, false)
   })
 }, {
   name: 'auth-context',
@@ -48,5 +65,6 @@ declare module 'fastify' {
 
   interface FastifyInstance {
     authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>
+    tryAuthenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>
   }
 }

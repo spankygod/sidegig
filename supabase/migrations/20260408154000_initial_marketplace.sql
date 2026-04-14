@@ -10,15 +10,47 @@ begin
 end;
 $$;
 
+create or replace function public.calculate_distance_km(
+  origin_lat numeric,
+  origin_lng numeric,
+  target_lat numeric,
+  target_lng numeric
+)
+returns double precision
+language sql
+immutable
+as $$
+  select 6371.0 * acos(
+    greatest(
+      -1.0,
+      least(
+        1.0,
+        cos(radians(origin_lat::double precision))
+        * cos(radians(target_lat::double precision))
+        * cos(radians(target_lng::double precision) - radians(origin_lng::double precision))
+        + sin(radians(origin_lat::double precision))
+        * sin(radians(target_lat::double precision))
+      )
+    )
+  );
+$$;
+
 create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   display_name text not null,
   city text,
   barangay text,
+  latitude numeric(9, 6),
+  longitude numeric(9, 6),
+  service_radius_km integer not null default 25 check (service_radius_km between 1 and 200),
   bio text,
   skills text[] not null default '{}',
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  check (
+    (latitude is null and longitude is null)
+    or (latitude is not null and longitude is not null)
+  )
 );
 
 create table if not exists public.user_stats (
@@ -73,6 +105,7 @@ create table if not exists public.gig_posts (
   barangay text not null,
   latitude numeric(9, 6) not null,
   longitude numeric(9, 6) not null,
+  application_radius_km integer not null default 25 check (application_radius_km between 1 and 200),
   schedule_summary text not null,
   supervisor_present boolean not null default false,
   ppe_provided boolean not null default false,
@@ -239,9 +272,21 @@ with check (
   and exists (
     select 1
     from public.gig_posts gp
+    inner join public.profiles p on p.id = auth.uid()
     where gp.id = gig_id
       and gp.poster_id <> auth.uid()
       and gp.status in ('published', 'shortlisting')
+      and p.latitude is not null
+      and p.longitude is not null
+      and public.calculate_distance_km(
+        p.latitude,
+        p.longitude,
+        gp.latitude,
+        gp.longitude
+      ) <= least(
+        p.service_radius_km::double precision,
+        gp.application_radius_km::double precision
+      )
   )
 );
 

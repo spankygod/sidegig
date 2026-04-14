@@ -12,6 +12,7 @@ import {
   listPublicGigs,
   updatePosterGig
 } from '../../../modules/gigs/repository'
+import { fundGigHire } from '../../../modules/hires/repository'
 import {
   DURATION_BUCKETS,
   GIG_CATEGORIES,
@@ -44,6 +45,10 @@ type UpdateGigBody = UpdateGigInput
 
 type ReviewApplicationBody = {
   status: ReviewableApplicationStatus
+}
+
+type FundHireBody = {
+  applicationId: string
 }
 
 function hasOwnProperty (value: object, key: string): boolean {
@@ -539,6 +544,62 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
 
     return {
       application
+    }
+  })
+
+  fastify.post<{ Params: { gigId: string }, Body: FundHireBody }>('/mine/:gigId/fund', {
+    onRequest: [fastify.authenticate],
+    schema: {
+      params: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['gigId'],
+        properties: {
+          gigId: { type: 'string', format: 'uuid' }
+        }
+      },
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['applicationId'],
+        properties: {
+          applicationId: { type: 'string', format: 'uuid' }
+        }
+      }
+    }
+  }, async function (request, reply) {
+    await ensureUserProfile(fastify.db, request.authUser!)
+
+    const gig = await getPosterGigById(fastify.db, request.authUser!.id, request.params.gigId)
+
+    if (gig == null) {
+      reply.notFound('Gig not found')
+      return
+    }
+
+    if (gig.status !== 'published') {
+      reply.conflict('Only published gigs can fund a hire')
+      return
+    }
+
+    const hire = await fundGigHire(fastify.db, {
+      posterId: request.authUser!.id,
+      gigId: request.params.gigId,
+      applicationId: request.body.applicationId
+    })
+
+    if (hire == null) {
+      reply.notFound('Application not found or can no longer be hired')
+      return
+    }
+
+    const updatedGig = await getPosterGigById(fastify.db, request.authUser!.id, request.params.gigId)
+    const applications = await listGigApplicationsForPoster(fastify.db, request.authUser!.id, request.params.gigId)
+
+    return {
+      hire,
+      gig: updatedGig,
+      applications
     }
   })
 }

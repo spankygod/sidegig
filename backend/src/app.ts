@@ -5,7 +5,6 @@ import { FastifyPluginAsync, FastifyServerOptions } from 'fastify'
 import authContextPlugin from './plugins/auth-context'
 import configPlugin from './plugins/config'
 import postgresPlugin from './plugins/postgres'
-import redisPlugin from './plugins/redis'
 import supabasePlugin from './plugins/supabase'
 
 export interface AppOptions extends FastifyServerOptions, Partial<AutoloadPluginOptions> {
@@ -22,7 +21,6 @@ const app: FastifyPluginAsync<AppOptions> = async (
   await fastify.register(configPlugin)
   await fastify.register(sensible)
   await fastify.register(postgresPlugin)
-  await fastify.register(redisPlugin)
   await fastify.register(supabasePlugin)
   await fastify.register(authContextPlugin)
 

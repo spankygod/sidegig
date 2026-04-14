@@ -1,27 +1,29 @@
 import { relations, sql } from 'drizzle-orm'
 import {
   boolean,
+  check,
   index,
   integer,
   numeric,
+  pgEnum,
   pgSchema,
+  pgTable,
   text,
   timestamp,
   unique,
   uuid
 } from 'drizzle-orm/pg-core'
+import { DEFAULT_GIG_APPLICATION_RADIUS_KM, DEFAULT_SERVICE_RADIUS_KM } from '../src/modules/proximity'
 
 const auth = pgSchema('auth')
-const publicSchema = pgSchema('public')
 
 export const authUsers = auth.table('users', {
   id: uuid('id').primaryKey()
 })
 
-export const gigStatusEnum = publicSchema.enum('gig_status', [
+export const gigStatusEnum = pgEnum('gig_status', [
   'draft',
   'published',
-  'shortlisting',
   'funded',
   'in_progress',
   'completed',
@@ -30,27 +32,51 @@ export const gigStatusEnum = publicSchema.enum('gig_status', [
   'closed'
 ])
 
-export const applicationStatusEnum = publicSchema.enum('application_status', [
+export const applicationStatusEnum = pgEnum('application_status', [
   'submitted',
-  'shortlisted',
   'rejected',
   'withdrawn',
   'hired',
   'closed'
 ])
 
-export const profiles = publicSchema.table('profiles', {
+export const hireStatusEnum = pgEnum('hire_status', [
+  'pending_funding',
+  'funded',
+  'accepted',
+  'in_progress',
+  'worker_marked_done',
+  'poster_accepted',
+  'disputed',
+  'refunded',
+  'payout_ready',
+  'paid_out'
+])
+
+export const profiles = pgTable('profiles', {
   id: uuid('id').primaryKey().references(() => authUsers.id, { onDelete: 'cascade' }),
   displayName: text('display_name').notNull(),
   city: text('city'),
   barangay: text('barangay'),
+  latitude: numeric('latitude', { precision: 9, scale: 6 }),
+  longitude: numeric('longitude', { precision: 9, scale: 6 }),
+  serviceRadiusKm: integer('service_radius_km').notNull().default(DEFAULT_SERVICE_RADIUS_KM),
   bio: text('bio'),
   skills: text('skills').array().notNull().default(sql`'{}'::text[]`),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
-})
+}, (table) => ({
+  serviceRadiusRangeCheck: check(
+    'profiles_service_radius_km_check',
+    sql`${table.serviceRadiusKm} between 1 and 200`
+  ),
+  coordinatesPairCheck: check(
+    'profiles_coordinates_pair_check',
+    sql`(${table.latitude} is null and ${table.longitude} is null) or (${table.latitude} is not null and ${table.longitude} is not null)`
+  )
+}))
 
-export const userStats = publicSchema.table('user_stats', {
+export const userStats = pgTable('user_stats', {
   userId: uuid('user_id').primaryKey().references(() => profiles.id, { onDelete: 'cascade' }),
   rating: numeric('rating', { precision: 3, scale: 2 }).notNull().default('0'),
   reviewCount: integer('review_count').notNull().default(0),
@@ -60,7 +86,7 @@ export const userStats = publicSchema.table('user_stats', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 })
 
-export const gigPosts = publicSchema.table('gig_posts', {
+export const gigPosts = pgTable('gig_posts', {
   id: uuid('id').primaryKey().defaultRandom(),
   posterId: uuid('poster_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
@@ -73,6 +99,7 @@ export const gigPosts = publicSchema.table('gig_posts', {
   barangay: text('barangay').notNull(),
   latitude: numeric('latitude', { precision: 9, scale: 6 }).notNull(),
   longitude: numeric('longitude', { precision: 9, scale: 6 }).notNull(),
+  applicationRadiusKm: integer('application_radius_km').notNull().default(DEFAULT_GIG_APPLICATION_RADIUS_KM),
   scheduleSummary: text('schedule_summary').notNull(),
   supervisorPresent: boolean('supervisor_present').notNull().default(false),
   ppeProvided: boolean('ppe_provided').notNull().default(false),
@@ -85,10 +112,15 @@ export const gigPosts = publicSchema.table('gig_posts', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 }, (table) => ({
   statusCreatedAtIdx: index('gig_posts_status_created_at_idx').on(table.status, table.createdAt),
-  categoryCityIdx: index('gig_posts_category_city_idx').on(table.category, table.city)
+  categoryCityIdx: index('gig_posts_category_city_idx').on(table.category, table.city),
+  priceAmountCheck: check('gig_posts_price_amount_check', sql`${table.priceAmount} > 0`),
+  applicationRadiusRangeCheck: check(
+    'gig_posts_application_radius_km_check',
+    sql`${table.applicationRadiusKm} between 1 and 200`
+  )
 }))
 
-export const gigApplications = publicSchema.table('gig_applications', {
+export const gigApplications = pgTable('gig_applications', {
   id: uuid('id').primaryKey().defaultRandom(),
   gigId: uuid('gig_id').notNull().references(() => gigPosts.id, { onDelete: 'cascade' }),
   workerId: uuid('worker_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
@@ -102,13 +134,32 @@ export const gigApplications = publicSchema.table('gig_applications', {
   workerCreatedAtIdx: index('gig_applications_worker_created_at_idx').on(table.workerId, table.createdAt)
 }))
 
+export const hires = pgTable('hires', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  gigId: uuid('gig_id').notNull().references(() => gigPosts.id, { onDelete: 'cascade' }),
+  applicationId: uuid('application_id').notNull().references(() => gigApplications.id, { onDelete: 'cascade' }),
+  posterId: uuid('poster_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
+  workerId: uuid('worker_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
+  status: hireStatusEnum('status').notNull().default('funded'),
+  fundedAt: timestamp('funded_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+}, (table) => ({
+  gigUnique: unique('hires_gig_id_unique').on(table.gigId),
+  applicationUnique: unique('hires_application_id_unique').on(table.applicationId),
+  posterStatusIdx: index('hires_poster_status_idx').on(table.posterId, table.status),
+  workerStatusIdx: index('hires_worker_status_idx').on(table.workerId, table.status)
+}))
+
 export const authUsersRelations = relations(authUsers, ({ many, one }) => ({
   profile: one(profiles, {
     fields: [authUsers.id],
     references: [profiles.id]
   }),
   gigPosts: many(gigPosts),
-  gigApplications: many(gigApplications)
+  gigApplications: many(gigApplications),
+  posterHires: many(hires),
+  workerHires: many(hires)
 }))
 
 export const profilesRelations = relations(profiles, ({ one }) => ({
@@ -134,7 +185,11 @@ export const gigPostsRelations = relations(gigPosts, ({ one, many }) => ({
     fields: [gigPosts.posterId],
     references: [authUsers.id]
   }),
-  applications: many(gigApplications)
+  applications: many(gigApplications),
+  hire: one(hires, {
+    fields: [gigPosts.id],
+    references: [hires.gigId]
+  })
 }))
 
 export const gigApplicationsRelations = relations(gigApplications, ({ one }) => ({
@@ -145,6 +200,29 @@ export const gigApplicationsRelations = relations(gigApplications, ({ one }) => 
   worker: one(authUsers, {
     fields: [gigApplications.workerId],
     references: [authUsers.id]
+  }),
+  hire: one(hires, {
+    fields: [gigApplications.id],
+    references: [hires.applicationId]
+  })
+}))
+
+export const hiresRelations = relations(hires, ({ one }) => ({
+  gig: one(gigPosts, {
+    fields: [hires.gigId],
+    references: [gigPosts.id]
+  }),
+  application: one(gigApplications, {
+    fields: [hires.applicationId],
+    references: [gigApplications.id]
+  }),
+  poster: one(authUsers, {
+    fields: [hires.posterId],
+    references: [authUsers.id]
+  }),
+  worker: one(authUsers, {
+    fields: [hires.workerId],
+    references: [authUsers.id]
   })
 }))
 
@@ -153,7 +231,8 @@ export const schema = {
   profiles,
   userStats,
   gigPosts,
-  gigApplications
+  gigApplications,
+  hires
 }
 
 export type DrizzleSchema = typeof schema

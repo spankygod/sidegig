@@ -3,6 +3,9 @@ export interface UserProfile {
   displayName: string
   city: string | null
   barangay: string | null
+  latitude: number | null
+  longitude: number | null
+  serviceRadiusKm: number
   bio: string | null
   skills: string[]
   stats: {
@@ -17,6 +20,9 @@ export interface UpdateUserProfileInput {
   displayName?: string
   city?: string | null
   barangay?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  serviceRadiusKm?: number
   bio?: string | null
   skills?: string[]
 }

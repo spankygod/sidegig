@@ -8,11 +8,10 @@ export interface AppConfig {
   host: string
   port: number
   databaseUrl: string
-  redisUrl: string
   jwtSecret: string
   supabaseUrl: string
-  supabaseAnonKey: string
-  supabaseServiceRoleKey: string
+  supabasePublishableKey: string
+  supabaseSecretKey: string
   hasSupabase: boolean
   paymongoPublicKey: string
   paymongoSecretKey: string
@@ -63,6 +62,14 @@ function requireString (value: string | undefined, key: string, fallback?: strin
   return resolved
 }
 
+function getSupabasePublishableKey (env: NodeJS.ProcessEnv): string {
+  return env.SUPABASE_PUBLISHABLE_KEY?.trim() ?? env.SUPABASE_ANON_KEY?.trim() ?? ''
+}
+
+function getSupabaseSecretKey (env: NodeJS.ProcessEnv): string {
+  return env.SUPABASE_SECRET_KEY?.trim() ?? env.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? ''
+}
+
 export function buildAppConfig (env: NodeJS.ProcessEnv = process.env): AppConfig {
   loadEnvFile()
 
@@ -78,12 +85,11 @@ export function buildAppConfig (env: NodeJS.ProcessEnv = process.env): AppConfig
       'DATABASE_URL',
       'postgres://postgres:postgres@127.0.0.1:5432/raket'
     ),
-    redisUrl: requireString(env.REDIS_URL, 'REDIS_URL', 'redis://127.0.0.1:6379'),
     jwtSecret: requireString(env.JWT_SECRET, 'JWT_SECRET', 'change-me-before-production'),
     supabaseUrl: env.SUPABASE_URL?.trim() ?? '',
-    supabaseAnonKey: env.SUPABASE_ANON_KEY?.trim() ?? '',
-    supabaseServiceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? '',
-    hasSupabase: Boolean(env.SUPABASE_URL?.trim() && env.SUPABASE_SERVICE_ROLE_KEY?.trim()),
+    supabasePublishableKey: getSupabasePublishableKey(env),
+    supabaseSecretKey: getSupabaseSecretKey(env),
+    hasSupabase: Boolean(env.SUPABASE_URL?.trim() && getSupabaseSecretKey(env)),
     paymongoPublicKey: env.PAYMONGO_PUBLIC_KEY?.trim() ?? '',
     paymongoSecretKey: env.PAYMONGO_SECRET_KEY?.trim() ?? '',
     paymongoWebhookSecret: env.PAYMONGO_WEBHOOK_SECRET?.trim() ?? '',

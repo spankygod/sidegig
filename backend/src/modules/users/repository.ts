@@ -1,5 +1,6 @@
 import type { Pool } from 'pg'
 import { deriveDisplayName, type AuthenticatedUser } from '../auth/types'
+import { DEFAULT_SERVICE_RADIUS_KM } from '../proximity'
 import type { UpdateUserProfileInput, UserProfile } from './types'
 
 type UserProfileRow = {
@@ -7,6 +8,9 @@ type UserProfileRow = {
   display_name: string
   city: string | null
   barangay: string | null
+  latitude: string | number | null
+  longitude: string | number | null
+  service_radius_km: number | null
   bio: string | null
   skills: string[] | null
   rating: string | number | null
@@ -21,6 +25,9 @@ function mapUserProfile (row: UserProfileRow): UserProfile {
     displayName: row.display_name,
     city: row.city,
     barangay: row.barangay,
+    latitude: row.latitude == null ? null : Number(row.latitude),
+    longitude: row.longitude == null ? null : Number(row.longitude),
+    serviceRadiusKm: row.service_radius_km ?? DEFAULT_SERVICE_RADIUS_KM,
     bio: row.bio,
     skills: row.skills ?? [],
     stats: {
@@ -63,6 +70,9 @@ export async function ensureUserProfile (
         p.display_name,
         p.city,
         p.barangay,
+        p.latitude,
+        p.longitude,
+        p.service_radius_km,
         p.bio,
         p.skills,
         us.rating,
@@ -79,6 +89,39 @@ export async function ensureUserProfile (
   return mapUserProfile(result.rows[0])
 }
 
+export async function getWorkerServiceArea (
+  db: Pool,
+  userId: string
+): Promise<{ latitude: number; longitude: number; serviceRadiusKm: number } | null> {
+  const result = await db.query<Pick<UserProfileRow, 'latitude' | 'longitude' | 'service_radius_km'>>(
+    `
+      select
+        latitude,
+        longitude,
+        service_radius_km
+      from public.profiles
+      where id = $1
+    `,
+    [userId]
+  )
+
+  if (result.rowCount === 0) {
+    return null
+  }
+
+  const row = result.rows[0]
+
+  if (row.latitude == null || row.longitude == null) {
+    return null
+  }
+
+  return {
+    latitude: Number(row.latitude),
+    longitude: Number(row.longitude),
+    serviceRadiusKm: row.service_radius_km ?? DEFAULT_SERVICE_RADIUS_KM
+  }
+}
+
 export async function updateUserProfile (
   db: Pool,
   userId: string,
@@ -91,8 +134,11 @@ export async function updateUserProfile (
         display_name = coalesce($2, display_name),
         city = case when $3::boolean then $4 else city end,
         barangay = case when $5::boolean then $6 else barangay end,
-        bio = case when $7::boolean then $8 else bio end,
-        skills = case when $9::boolean then $10 else skills end,
+        latitude = case when $7::boolean then $8 else latitude end,
+        longitude = case when $9::boolean then $10 else longitude end,
+        service_radius_km = coalesce($11, service_radius_km),
+        bio = case when $12::boolean then $13 else bio end,
+        skills = case when $14::boolean then $15 else skills end,
         updated_at = now()
       where id = $1
       returning
@@ -100,6 +146,9 @@ export async function updateUserProfile (
         display_name,
         city,
         barangay,
+        latitude,
+        longitude,
+        service_radius_km,
         bio,
         skills,
         0::numeric as rating,
@@ -114,6 +163,11 @@ export async function updateUserProfile (
       input.city ?? null,
       Object.prototype.hasOwnProperty.call(input, 'barangay'),
       input.barangay ?? null,
+      Object.prototype.hasOwnProperty.call(input, 'latitude'),
+      input.latitude ?? null,
+      Object.prototype.hasOwnProperty.call(input, 'longitude'),
+      input.longitude ?? null,
+      input.serviceRadiusKm,
       Object.prototype.hasOwnProperty.call(input, 'bio'),
       input.bio ?? null,
       Object.prototype.hasOwnProperty.call(input, 'skills'),
