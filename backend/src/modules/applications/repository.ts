@@ -183,6 +183,84 @@ export async function listWorkerApplications (
   return result.rows.map(mapApplication)
 }
 
+export async function getWorkerApplicationById (
+  db: Pool,
+  input: {
+    applicationId: string
+    workerId: string
+  }
+): Promise<GigApplicationSummary | null> {
+  const result = await db.query<ApplicationRow>(
+    `
+      select
+        ga.id,
+        ga.status,
+        ga.intro,
+        ga.availability,
+        ga.created_at,
+        g.id as gig_id,
+        g.title as gig_title,
+        g.category as gig_category,
+        g.city as gig_city,
+        g.barangay as gig_barangay,
+        g.status as gig_status
+      from public.gig_applications ga
+      inner join public.gig_posts g on g.id = ga.gig_id
+      where ga.id = $1
+        and ga.worker_id = $2
+    `,
+    [input.applicationId, input.workerId]
+  )
+
+  if (result.rowCount === 0) {
+    return null
+  }
+
+  return mapApplication(result.rows[0])
+}
+
+export async function withdrawWorkerApplication (
+  db: Pool,
+  input: {
+    applicationId: string
+    workerId: string
+  }
+): Promise<GigApplicationSummary | null> {
+  const result = await db.query<ApplicationRow>(
+    `
+      with updated as (
+        update public.gig_applications
+        set status = 'withdrawn'
+        where id = $1
+          and worker_id = $2
+          and status = 'submitted'
+        returning *
+      )
+      select
+        updated.id,
+        updated.status,
+        updated.intro,
+        updated.availability,
+        updated.created_at,
+        g.id as gig_id,
+        g.title as gig_title,
+        g.category as gig_category,
+        g.city as gig_city,
+        g.barangay as gig_barangay,
+        g.status as gig_status
+      from updated
+      inner join public.gig_posts g on g.id = updated.gig_id
+    `,
+    [input.applicationId, input.workerId]
+  )
+
+  if (result.rowCount === 0) {
+    return null
+  }
+
+  return mapApplication(result.rows[0])
+}
+
 export async function listGigApplicationsForPoster (
   db: Pool,
   posterId: string,

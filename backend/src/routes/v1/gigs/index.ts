@@ -8,6 +8,7 @@ import { REVIEWABLE_APPLICATION_STATUSES, type ReviewableApplicationStatus } fro
 import {
   createGig,
   getPosterGigById,
+  getPublicGigById,
   listPosterGigs,
   listPublicGigs,
   updatePosterGig
@@ -34,6 +35,12 @@ type ListGigsQuery = {
   radiusKm?: number
   limit?: number
 }
+
+type PublicGigParams = {
+  gigId: string
+}
+
+type PublicGigDetailQuery = Pick<ListGigsQuery, 'latitude' | 'longitude'>
 
 type ListPosterGigsQuery = {
   status?: GigStatus
@@ -218,6 +225,53 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
 
     return {
       gigs
+    }
+  })
+
+  fastify.get<{ Params: PublicGigParams, Querystring: PublicGigDetailQuery }>('/:gigId', {
+    onRequest: [fastify.tryAuthenticate],
+    schema: {
+      params: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['gigId'],
+        properties: {
+          gigId: { type: 'string', format: 'uuid' }
+        }
+      },
+      querystring: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          latitude: { type: 'number', minimum: -90, maximum: 90 },
+          longitude: { type: 'number', minimum: -180, maximum: 180 }
+        }
+      }
+    }
+  }, async function (request, reply) {
+    const hasLatitude = request.query.latitude != null
+    const hasLongitude = request.query.longitude != null
+
+    if (hasLatitude !== hasLongitude) {
+      throw fastify.httpErrors.badRequest('Latitude and longitude must be provided together')
+    }
+
+    const workerServiceArea = request.authUser == null
+      ? null
+      : await getWorkerServiceArea(fastify.db, request.authUser.id)
+
+    const gig = await getPublicGigById(fastify.db, request.params.gigId, {
+      latitude: workerServiceArea?.latitude ?? request.query.latitude,
+      longitude: workerServiceArea?.longitude ?? request.query.longitude
+    })
+
+    if (gig == null) {
+      reply.notFound('Gig not found')
+      return
+    }
+
+    return {
+      gig
     }
   })
 

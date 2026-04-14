@@ -275,6 +275,73 @@ export async function listPublicGigs (db: Pool, filters: GigListFilters): Promis
   return result.rows.map(mapPublicGig)
 }
 
+export async function getPublicGigById (
+  db: Pool,
+  gigId: string,
+  filters?: {
+    latitude?: number
+    longitude?: number
+  }
+): Promise<PublicGig | null> {
+  const values: Array<string | number> = [gigId]
+  let distanceExpression = 'null::numeric'
+
+  if (filters?.latitude != null && filters.longitude != null) {
+    values.push(filters.latitude)
+    const latitudeParam = values.length
+    values.push(filters.longitude)
+    const longitudeParam = values.length
+
+    distanceExpression = `public.calculate_distance_km($${latitudeParam}, $${longitudeParam}, g.latitude, g.longitude)`
+  }
+
+  const result = await db.query<GigRow>(
+    `
+      select
+        g.id,
+        g.title,
+        g.category,
+        g.description,
+        g.price_amount,
+        g.currency,
+        g.duration_bucket,
+        g.status,
+        g.schedule_summary,
+        g.city,
+        g.barangay,
+        g.latitude,
+        g.longitude,
+        g.application_radius_km,
+        g.supervisor_present,
+        g.ppe_provided,
+        g.helper_only_confirmation,
+        g.physical_load,
+        g.starts_at,
+        g.ends_at,
+        g.created_at,
+        round((${distanceExpression})::numeric, 2) as distance_km,
+        p.id as poster_id,
+        p.display_name as poster_display_name,
+        us.rating as poster_rating,
+        us.review_count as poster_review_count,
+        us.jobs_completed as poster_jobs_completed,
+        us.response_rate as poster_response_rate
+      from public.gig_posts g
+      inner join public.profiles p on p.id = g.poster_id
+      left join public.user_stats us on us.user_id = p.id
+      where g.id = $1
+        and g.status = 'published'
+    `,
+    values
+  )
+
+  if (result.rowCount === 0) {
+    return null
+  }
+
+  return mapPublicGig(result.rows[0])
+}
+
 export async function listPosterGigs (
   db: Pool,
   posterId: string,

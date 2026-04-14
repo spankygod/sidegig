@@ -1,5 +1,11 @@
 import { type FastifyPluginAsync } from 'fastify'
-import { createGigApplication, isUniqueViolation, listWorkerApplications } from '../../../modules/applications/repository'
+import {
+  createGigApplication,
+  getWorkerApplicationById,
+  isUniqueViolation,
+  listWorkerApplications,
+  withdrawWorkerApplication
+} from '../../../modules/applications/repository'
 import { getGigEligibilityForWorker } from '../../../modules/gigs/repository'
 import { ensureUserProfile } from '../../../modules/users/repository'
 
@@ -7,6 +13,19 @@ type CreateApplicationBody = {
   gigId: string
   intro: string
   availability: string
+}
+
+type ApplicationParams = {
+  applicationId: string
+}
+
+const applicationParamsSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['applicationId'],
+  properties: {
+    applicationId: { type: 'string', format: 'uuid' }
+  }
 }
 
 const applicationsRoutes: FastifyPluginAsync = async (fastify) => {
@@ -99,6 +118,52 @@ const applicationsRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       throw error
+    }
+  })
+
+  fastify.get<{ Params: ApplicationParams }>('/:applicationId', {
+    onRequest: [fastify.authenticate],
+    schema: {
+      params: applicationParamsSchema
+    }
+  }, async function (request, reply) {
+    await ensureUserProfile(fastify.db, request.authUser!)
+
+    const application = await getWorkerApplicationById(fastify.db, {
+      applicationId: request.params.applicationId,
+      workerId: request.authUser!.id
+    })
+
+    if (application == null) {
+      reply.notFound('Application not found')
+      return
+    }
+
+    return {
+      application
+    }
+  })
+
+  fastify.post<{ Params: ApplicationParams }>('/:applicationId/withdraw', {
+    onRequest: [fastify.authenticate],
+    schema: {
+      params: applicationParamsSchema
+    }
+  }, async function (request, reply) {
+    await ensureUserProfile(fastify.db, request.authUser!)
+
+    const application = await withdrawWorkerApplication(fastify.db, {
+      applicationId: request.params.applicationId,
+      workerId: request.authUser!.id
+    })
+
+    if (application == null) {
+      reply.conflict('Only submitted applications can be withdrawn')
+      return
+    }
+
+    return {
+      application
     }
   })
 }
