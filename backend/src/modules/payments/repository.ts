@@ -405,3 +405,90 @@ export async function markPayoutPaid (
     client.release()
   }
 }
+
+export async function markPaymentRefunded (
+  db: Pool,
+  input: {
+    paymentId: string
+    providerReference?: string | null
+  }
+): Promise<PaymentSummary | null> {
+  const client = await db.connect()
+
+  try {
+    await client.query('begin')
+
+    const paymentResult = await client.query<PaymentRow>(
+      `
+        update public.payments
+        set
+          status = 'refunded',
+          provider_reference = coalesce($2, provider_reference),
+          refunded_at = coalesce(refunded_at, now())
+        where id = $1
+        returning
+          id,
+          hire_id,
+          payer_id,
+          payee_id,
+          amount,
+          currency,
+          status,
+          provider,
+          provider_reference,
+          paid_at,
+          refunded_at,
+          created_at,
+          updated_at
+      `,
+      [input.paymentId, input.providerReference ?? null]
+    )
+
+    if (paymentResult.rowCount === 0) {
+      await client.query('rollback')
+      return null
+    }
+
+    const payment = paymentResult.rows[0]
+
+    await client.query(
+      `
+        update public.hires
+        set status = 'refunded'
+        where id = $1
+      `,
+      [payment.hire_id]
+    )
+
+    await client.query(
+      `
+        update public.gig_posts gp
+        set status = 'cancelled'
+        from public.hires h
+        where h.id = $1
+          and h.gig_id = gp.id
+          and gp.status <> 'cancelled'
+      `,
+      [payment.hire_id]
+    )
+
+    await client.query(
+      `
+        update public.payouts
+        set status = 'cancelled'
+        where hire_id = $1
+          and status = 'pending'
+      `,
+      [payment.hire_id]
+    )
+
+    await client.query('commit')
+
+    return mapPayment(payment)
+  } catch (error) {
+    await client.query('rollback')
+    throw error
+  } finally {
+    client.release()
+  }
+}

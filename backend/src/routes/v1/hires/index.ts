@@ -21,7 +21,8 @@ import {
   updateHireMilestoneStatus
 } from '../../../modules/milestones/repository'
 import { HIRE_MILESTONE_STATUSES, type HireMilestoneStatus } from '../../../modules/milestones/types'
-import { ensurePayoutForHire } from '../../../modules/payments/repository'
+import { ensurePayoutForHire, markPayoutPaid } from '../../../modules/payments/repository'
+import { createMockPaymongoPayout } from '../../../modules/payments/paymongo-mock'
 
 type HireParams = {
   hireId: string
@@ -394,7 +395,15 @@ const hiresRoutes: FastifyPluginAsync = async (fastify) => {
     )
 
     if (result?.hire != null) {
-      await ensurePayoutForHire(fastify.db, result.hire.id)
+      const payout = await ensurePayoutForHire(fastify.db, result.hire.id)
+
+      if (payout != null) {
+        const mockPayout = createMockPaymongoPayout(payout.id)
+        await markPayoutPaid(fastify.db, {
+          payoutId: payout.id,
+          providerReference: mockPayout.providerReference
+        })
+      }
 
       await createNotification(fastify.db, {
         userId: result.hire.workerId,

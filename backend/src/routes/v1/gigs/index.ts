@@ -16,6 +16,7 @@ import {
 import { fundGigHire } from '../../../modules/hires/repository'
 import { createNotification } from '../../../modules/notifications/repository'
 import { recordHirePayment } from '../../../modules/payments/repository'
+import { createMockPaymongoCheckout } from '../../../modules/payments/paymongo-mock'
 import {
   DURATION_BUCKETS,
   GIG_CATEGORIES,
@@ -688,13 +689,20 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
     const updatedGig = await getPosterGigById(fastify.db, request.authUser!.id, request.params.gigId)
     const applications = await listGigApplicationsForPoster(fastify.db, request.authUser!.id, request.params.gigId)
 
+    const checkout = createMockPaymongoCheckout({
+      hireId: hire.id,
+      amount: gig.priceAmount,
+      currency: gig.currency
+    })
+
     const payment = await recordHirePayment(fastify.db, {
       hireId: hire.id,
       payerId: hire.posterId,
       payeeId: hire.workerId,
       amount: gig.priceAmount,
       currency: gig.currency,
-      provider: 'manual'
+      provider: checkout.provider,
+      providerReference: checkout.providerReference
     })
 
     await createNotification(fastify.db, {
@@ -710,6 +718,7 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
     return {
       hire,
       payment,
+      checkout,
       gig: updatedGig,
       applications
     }
