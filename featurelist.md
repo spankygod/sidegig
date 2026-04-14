@@ -19,6 +19,12 @@ Manual review checklist for the current backend completion pass.
 - [x] TypeScript build-based backend verification.
 - [x] Node test runner wired into `npm test`.
 
+Mobile routes:
+
+- `GET /v1/auth/me`
+- `GET /v1/users/me`
+- `PATCH /v1/users/me`
+
 ## Gigs
 
 - [x] Public gig browsing with location-safe response data.
@@ -175,24 +181,23 @@ Mobile routes:
 - [x] Payment records table.
 - [x] Payout records table.
 - [x] Funding a hire records a payment.
-- [x] Poster accepting completion moves hire to payout-ready.
+- [x] Poster accepting completion moves hire through payout-ready.
 - [x] Payout record is created for payout-ready hire.
 - [x] Users can list and read related payments.
 - [x] Admin can list payments.
 - [x] Admin can list payouts.
 - [x] Admin can mark payout paid.
-- [x] Mock PayMongo checkout always succeeds.
+- [x] Mock PayMongo checkout succeeds after hire funding eligibility passes.
 - [x] Mock PayMongo webhook verification always succeeds.
 - [x] Mock PayMongo webhook handler always accepts events.
-- [x] Mock PayMongo refund always succeeds.
-- [x] Mock automated refunds update payment, hire, gig, and pending payout state.
-- [x] Mock worker payout rail always succeeds.
+- [x] Mock PayMongo refund succeeds for existing payments.
+- [x] Mock admin-triggered refunds update payment, hire, gig, and payout state.
+- [x] Mock worker payout rail succeeds for eligible payout-ready hires.
 
 Mobile routes:
 
 - `GET /v1/payments`
 - `GET /v1/payments/:paymentId`
-- `POST /webhooks/paymongo`
 
 Admin routes:
 
@@ -203,14 +208,19 @@ Admin routes:
 
 Not yet wired:
 
-- [x] Mock PayMongo checkout/session creation.
+- [x] Mock PayMongo checkout/session creation after hire funding eligibility passes.
 - [x] Mock PayMongo webhook verification and event handling.
-- [x] Mock PayMongo refunds.
-- [x] Mock automated worker payout rail.
+- [x] Mock PayMongo refunds for existing payments.
+- [x] Mock worker payout rail for eligible payout-ready hires.
+- [x] Mock payout rail marks the hire paid out.
 - [ ] Real PayMongo checkout/session creation.
 - [ ] Real PayMongo webhook verification and event handling.
 - [ ] Real automated refunds.
 - [ ] Real automated worker payout rail.
+
+Webhook routes:
+
+- `POST /webhooks/paymongo`
 
 ## Admin Dashboard Backend
 
@@ -248,6 +258,6 @@ npm test
 
 - [ ] Confirm the mobile app should call only `/v1/...` routes.
 - [ ] Confirm admin-dashboard should call only `/admin/v1/...` routes.
-- [ ] Confirm payment MVP should remain manual-provider until PayMongo is wired.
+- [ ] Confirm payment MVP should remain mock-provider until real PayMongo is wired.
 - [ ] Confirm dispute statuses and admin payout workflow match operations.
 - [ ] Confirm milestone behavior is enough for MVP or should be hidden until later.

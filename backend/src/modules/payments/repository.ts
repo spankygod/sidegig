@@ -475,9 +475,12 @@ export async function markPaymentRefunded (
     await client.query(
       `
         update public.payouts
-        set status = 'cancelled'
+        set
+          status = 'cancelled',
+          provider_reference = null,
+          paid_at = null
         where hire_id = $1
-          and status = 'pending'
+          and status <> 'cancelled'
       `,
       [payment.hire_id]
     )

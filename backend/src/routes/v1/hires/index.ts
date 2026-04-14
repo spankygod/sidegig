@@ -403,6 +403,15 @@ const hiresRoutes: FastifyPluginAsync = async (fastify) => {
           payoutId: payout.id,
           providerReference: mockPayout.providerReference
         })
+
+        const paidHire = await getUserHireById(fastify.db, {
+          hireId: result.hire.id,
+          userId: request.authUser!.id
+        })
+
+        if (paidHire != null) {
+          result.hire = paidHire
+        }
       }
 
       await createNotification(fastify.db, {

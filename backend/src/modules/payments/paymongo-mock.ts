@@ -28,6 +28,18 @@ function buildReference (prefix: string, id: string): string {
   return `${prefix}_${id.replaceAll('-', '')}`
 }
 
+function getMockWebhookEventType (payload: unknown): string {
+  if (typeof payload !== 'object' || payload == null) {
+    return 'mock.event.accepted'
+  }
+
+  if (!('type' in payload) || typeof payload.type !== 'string') {
+    return 'mock.event.accepted'
+  }
+
+  return payload.type
+}
+
 export function createMockPaymongoCheckout (input: {
   hireId: string
   amount: number
@@ -60,9 +72,7 @@ export function createMockPaymongoPayout (payoutId: string): MockPaymongoPayout 
 }
 
 export function verifyAndHandleMockPaymongoWebhook (payload: unknown): MockPaymongoWebhookResult {
-  const eventType = typeof payload === 'object' && payload != null && 'type' in payload && typeof payload.type === 'string'
-    ? payload.type
-    : 'mock.event.accepted'
+  const eventType = getMockWebhookEventType(payload)
 
   return {
     verified: true,

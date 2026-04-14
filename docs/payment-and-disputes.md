@@ -10,12 +10,18 @@ Raket can use PayMongo to collect payment and issue refunds, but the MVP should 
 
 This is the safest operating model while payout automation and compliance are still immature.
 
+Current backend implementation note:
+
+- PayMongo behavior is mock-only for now.
+- Mock checkout, webhook verification, refunds, and worker payout pass after their normal backend preconditions are met.
+- Real PayMongo checkout, webhook verification, refunds, and payout rails are still pending.
+
 ## Funding model
 
 ### Jobs up to 7 days
 
 - Poster funds the full amount when hiring
-- Payment is collected through PayMongo
+- Payment is collected through PayMongo in production; the current backend records a mock PayMongo payment
 - Job moves to `Funded`
 - Exact map pin unlocks for the hired worker
 
@@ -62,7 +68,7 @@ The MVP uses admin-managed payouts.
 
 Recommended operational flow:
 
-1. Poster funds the job through PayMongo.
+1. Poster funds the job through PayMongo in production, or through the mock PayMongo provider in the current backend.
 2. The platform records the payment and hire.
 3. Worker completes the job.
 4. Poster accepts or disputes.
@@ -73,7 +79,7 @@ Recommended operational flow:
 
 - If no worker is hired, poster can cancel and receive a refund based on payment state
 - If worker never accepts, admin can void or refund
-- If dispute favors poster, admin issues full or partial refund through PayMongo
+- If dispute favors poster, admin issues full or partial refund through PayMongo in production; current backend refund behavior is mock-only
 - If dispute favors worker, admin marks payout as approved
 
 ## Recommended future monetization
@@ -85,4 +91,3 @@ When monetization starts:
 - Add a poster-side service fee at hire
 - Keep worker payout simple at first
 - Add promoted or urgent gig boosts only after the marketplace has real demand
-

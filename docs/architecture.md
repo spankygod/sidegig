@@ -66,7 +66,7 @@
 - `gigs`: create, update, publish, close, categories, duration buckets
 - `applications`: apply, review, reject, hire selection
 - `chat`: pre-hire and post-hire chat threads with masking
-- `payments`: PayMongo integration, payment records, refunds
+- `payments`: payment records, mock PayMongo provider behavior, and refund state; real PayMongo integration is still pending
 - `milestones`: long-running job payment segmentation
 - `reviews`: post-completion ratings and comments
 - `disputes`: dispute intake, evidence, resolution, outcome
@@ -117,7 +117,7 @@ User-facing mobile routes and admin-dashboard routes must stay separate.
 ### Financial and admin tables
 
 - `payments`
-- `refunds`
+- `refunds` (planned; current mock refund state is tracked on `payments`)
 - `payouts`
 - `disputes`
 - `reports`

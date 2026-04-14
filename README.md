@@ -41,7 +41,7 @@ The MVP is intentionally strict about privacy and transaction capture:
 - Landing: Next.js with TypeScript
 - Storage: S3-compatible object storage for avatars and optional future attachments
 - Maps: Google Maps for post location pinning and rough-area previews
-- Payments: PayMongo for collection and refunds, admin-managed payout workflow for MVP
+- Payments: PayMongo is the target provider for collection/refunds; the current backend uses a mock PayMongo provider for checkout, webhooks, refunds, and payout-pass testing.
 
 ## Current auth flow
 
@@ -142,6 +142,8 @@ The app should avoid the word `escrow` for MVP. Use `Funded`, `Protected Payment
 - Jobs longer than 14 days: weekly milestones
 - Refunds and disputes are handled by admin
 - Worker payouts are admin-managed until compliance and automation are clarified
+
+Implementation note: the current backend uses mock PayMongo flows so frontend and admin flows can be tested without live PayMongo credentials. Mock checkout still requires normal hire funding eligibility, mock refunds require an existing payment, and mock payouts require an eligible payout-ready hire.
 
 See [docs/mvp-spec.md](docs/mvp-spec.md), [docs/payment-and-disputes.md](docs/payment-and-disputes.md), [docs/architecture.md](docs/architecture.md), and [docs/expo-mobile-roadmap.md](docs/expo-mobile-roadmap.md) for the detailed operating model.
 

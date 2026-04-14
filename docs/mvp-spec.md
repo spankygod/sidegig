@@ -99,7 +99,7 @@ Rules:
 
 ### 5. Poster funds the hire
 
-Poster selects one applicant and pays through PayMongo.
+Poster selects one applicant and pays through PayMongo in production. The current backend uses a mock PayMongo provider after normal hire funding eligibility passes.
 
 Result:
 

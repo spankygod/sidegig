@@ -55,6 +55,10 @@ This document is the current backend contract checkpoint after the backend compl
 - `GET /v1/payments`
 - `GET /v1/payments/:paymentId`
 
+## Webhook Routes
+
+- `POST /webhooks/paymongo`
+
 ## Admin Routes
 
 Admin routes require `ADMIN_USER_IDS` to include the authenticated Supabase user id.
@@ -63,6 +67,7 @@ Admin routes require `ADMIN_USER_IDS` to include the authenticated Supabase user
 - `GET /admin/v1/gigs`
 - `GET /admin/v1/disputes`
 - `GET /admin/v1/payments`
+- `POST /admin/v1/payments/:paymentId/refund`
 - `GET /admin/v1/payouts`
 - `POST /admin/v1/payouts/:payoutId/mark-paid`
 
@@ -78,11 +83,12 @@ Admin routes require `ADMIN_USER_IDS` to include the authenticated Supabase user
 - Reviews and public user stats.
 - In-app notification storage and read state.
 - Hire milestones.
-- Payment records and admin-managed payout records.
+- Payment records and payout records.
 - Admin route foundation with admin-only overview, gig, dispute, payment, and payout queues.
 
 ## Operational Notes
 
-- Payment records currently support provider/reference fields and admin-managed payouts. The live PayMongo checkout/webhook call is not wired yet.
+- PayMongo behavior is currently mocked: checkout passes after hire funding eligibility, webhook verification always accepts events, admin-triggered refunds pass for existing payments, and eligible worker payouts are auto-marked paid with mock provider references.
+- Real PayMongo checkout, webhook verification, refunds, and payout rails are not wired yet.
 - `npm test` runs TypeScript build plus Node unit tests.
 - SQL migrations live in `backend/drizzle/migrations`.
