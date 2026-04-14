@@ -94,4 +94,3 @@ The next mobile phases require backend support for:
 - Chat threads and messages
 - Hire funding and status transitions
 - Reviews, disputes, and notifications
-

@@ -137,4 +137,3 @@ After a funded hire:
 6. Reviews and dispute workflow
 7. Admin moderation and payout queue
 8. Landing site
-
