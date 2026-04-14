@@ -16,6 +16,7 @@ export interface AppConfig {
   paymongoPublicKey: string
   paymongoSecretKey: string
   paymongoWebhookSecret: string
+  adminUserIds: string[]
   isDevelopment: boolean
   isProduction: boolean
   isTest: boolean
@@ -70,6 +71,13 @@ function getSupabaseSecretKey (env: NodeJS.ProcessEnv): string {
   return env.SUPABASE_SECRET_KEY?.trim() ?? env.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? ''
 }
 
+function parseCommaSeparatedList (value: string | undefined): string[] {
+  return (value ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item !== '')
+}
+
 export function buildAppConfig (env: NodeJS.ProcessEnv = process.env): AppConfig {
   loadEnvFile()
 
@@ -93,6 +101,7 @@ export function buildAppConfig (env: NodeJS.ProcessEnv = process.env): AppConfig
     paymongoPublicKey: env.PAYMONGO_PUBLIC_KEY?.trim() ?? '',
     paymongoSecretKey: env.PAYMONGO_SECRET_KEY?.trim() ?? '',
     paymongoWebhookSecret: env.PAYMONGO_WEBHOOK_SECRET?.trim() ?? '',
+    adminUserIds: parseCommaSeparatedList(env.ADMIN_USER_IDS),
     isDevelopment: nodeEnv === 'development',
     isProduction: nodeEnv === 'production',
     isTest: nodeEnv === 'test'

@@ -50,6 +50,23 @@ export default fp(async (fastify) => {
     await resolveAuthUser(request, reply, true)
   })
 
+  fastify.decorate('authenticateAdmin', async (request: FastifyRequest, reply: FastifyReply) => {
+    await resolveAuthUser(request, reply, true)
+
+    if (reply.sent) {
+      return
+    }
+
+    if (request.authUser == null) {
+      reply.unauthorized('Missing authenticated user')
+      return
+    }
+
+    if (!fastify.config.adminUserIds.includes(request.authUser.id)) {
+      reply.forbidden('Admin access required')
+    }
+  })
+
   fastify.decorate('tryAuthenticate', async (request: FastifyRequest, reply: FastifyReply) => {
     await resolveAuthUser(request, reply, false)
   })
@@ -65,6 +82,7 @@ declare module 'fastify' {
 
   interface FastifyInstance {
     authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>
+    authenticateAdmin: (request: FastifyRequest, reply: FastifyReply) => Promise<void>
     tryAuthenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>
   }
 }
