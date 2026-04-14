@@ -1,14 +1,24 @@
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
-import { ScrollView, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useAppConfig } from '@/components/app-config-provider';
 import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import {
+  fetchChatMessages,
+  fetchChatThreads,
+  fetchMyProfile,
+  fetchPublicUserProfile,
+  type ChatThreadSummary,
+} from '@/lib/api';
 
 type Conversation = {
   id: string;
   avatarTone: string;
+  contextLabel: string;
   initials: string;
   isUnread?: boolean;
   lastMessage: string;
@@ -17,44 +27,55 @@ type Conversation = {
   unreadCount?: number;
 };
 
-const conversations: Conversation[] = [
-  {
-    id: 'chat-1',
-    avatarTone: '#dbe8fb',
-    initials: 'CM',
-    isUnread: true,
-    lastMessage: 'Can you arrive by 1 PM? I already sent the building access details.',
-    name: 'Casa Mila',
-    time: '2m',
-    unreadCount: 2,
-  },
-  {
-    id: 'chat-2',
-    avatarTone: '#e8eef9',
-    initials: 'LR',
-    isUnread: true,
-    lastMessage: 'Please bring gloves and extra trash bags if you have them.',
-    name: 'Luna Residences',
-    time: '18m',
-    unreadCount: 1,
-  },
-  {
-    id: 'chat-3',
-    avatarTone: '#edf3fb',
-    initials: 'RF',
-    lastMessage: 'We can adjust the start time to 10:30 if traffic is bad.',
-    name: 'Reyes Family',
-    time: '1h',
-  },
-  {
-    id: 'chat-4',
-    avatarTone: '#e3eefc',
-    initials: 'BR',
-    lastMessage: 'Noted. I will prepare the tools and message you in the morning.',
-    name: 'BuildRight Crew',
-    time: 'Yesterday',
-  },
-];
+const avatarTones = ['#dbe8fb', '#e8eef9', '#edf3fb', '#e3eefc'];
+
+function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+
+  if (parts.length === 0) {
+    return 'R';
+  }
+
+  return parts
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('');
+}
+
+function formatRelativeTime(value: string) {
+  const timestamp = new Date(value).getTime();
+
+  if (!Number.isFinite(timestamp)) {
+    return '';
+  }
+
+  const deltaMs = Date.now() - timestamp;
+  const minuteMs = 60 * 1000;
+  const hourMs = 60 * minuteMs;
+  const dayMs = 24 * hourMs;
+
+  if (deltaMs < minuteMs) {
+    return 'Now';
+  }
+
+  if (deltaMs < hourMs) {
+    return `${Math.max(1, Math.floor(deltaMs / minuteMs))}m`;
+  }
+
+  if (deltaMs < dayMs) {
+    return `${Math.floor(deltaMs / hourMs)}h`;
+  }
+
+  if (deltaMs < 2 * dayMs) {
+    return 'Yesterday';
+  }
+
+  return `${Math.floor(deltaMs / dayMs)}d`;
+}
+
+function getOtherParticipantId(thread: ChatThreadSummary, viewerId: string) {
+  return thread.posterId === viewerId ? thread.workerId : thread.posterId;
+}
 
 function MessageRow({
   conversation,
@@ -161,6 +182,16 @@ function MessageRow({
           }}>
           {conversation.lastMessage}
         </Text>
+
+        <Text
+          selectable
+          style={{
+            color: palette.mutedSoft,
+            fontFamily: Fonts.sans,
+            fontSize: 12,
+          }}>
+          {conversation.contextLabel}
+        </Text>
       </View>
     </View>
   );
@@ -171,6 +202,79 @@ export default function ChatScreen() {
   const palette = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
+  const { accessToken, apiBaseUrl } = useAppConfig();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [isLoading, setIsLoading] = useState(accessToken !== '');
+  const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (accessToken === '') {
+      setConversations([]);
+      setIsLoading(false);
+      setNotice('Sign in to load your chat threads.');
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    setIsLoading(true);
+    setNotice(null);
+
+    void Promise.all([
+      fetchMyProfile(apiBaseUrl, accessToken),
+      fetchChatThreads(apiBaseUrl, accessToken),
+    ])
+      .then(async ([profile, threads]) => {
+        const mapped = await Promise.all(
+          threads.map(async (thread, index): Promise<Conversation> => {
+            const otherUserId = getOtherParticipantId(thread, profile.id);
+
+            const [otherProfile, messages] = await Promise.all([
+              fetchPublicUserProfile(apiBaseUrl, accessToken, otherUserId).catch(() => null),
+              fetchChatMessages(apiBaseUrl, accessToken, thread.id, { limit: 1 }).catch(() => []),
+            ]);
+
+            const latestMessage = messages[0];
+            const name = otherProfile?.displayName ?? 'Raket user';
+            const contextLabel = thread.contextType === 'hire' ? 'Hire chat' : 'Application chat';
+
+            return {
+              id: thread.id,
+              avatarTone: avatarTones[index % avatarTones.length],
+              contextLabel,
+              initials: getInitials(name),
+              lastMessage: latestMessage?.body ?? `No messages yet. ${contextLabel} is ready.`,
+              name,
+              time: formatRelativeTime(latestMessage?.createdAt ?? thread.updatedAt),
+            };
+          })
+        );
+
+        if (!isMounted) {
+          return;
+        }
+
+        setConversations(mapped);
+        setNotice(mapped.length === 0 ? 'No chat threads yet. Threads open from applications and hires.' : null);
+      })
+      .catch(() => {
+        if (isMounted) {
+          setConversations([]);
+          setNotice('Unable to load your chat threads right now.');
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [accessToken, apiBaseUrl]);
 
   return (
     <ScrollView
@@ -207,6 +311,20 @@ export default function ChatScreen() {
       </Animated.View>
 
       <Animated.View entering={FadeInDown.delay(60).duration(360)} style={{ overflow: 'hidden' }}>
+        {isLoading ? <ActivityIndicator color={palette.accentStrong} /> : null}
+        {notice ? (
+          <Text
+            selectable
+            style={{
+              color: palette.muted,
+              fontFamily: Fonts.sans,
+              fontSize: 14,
+              lineHeight: 20,
+              paddingVertical: 16,
+            }}>
+            {notice}
+          </Text>
+        ) : null}
         {conversations.map((conversation, index) => (
           <MessageRow key={conversation.id} conversation={conversation} isLast={index === conversations.length - 1} />
         ))}

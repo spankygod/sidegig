@@ -540,7 +540,7 @@ export default function ReviewScreen() {
     setNotice(null);
 
     try {
-      await fundGigHire(apiBaseUrl, accessToken, selectedGigId, applicationId);
+      const result = await fundGigHire(apiBaseUrl, accessToken, selectedGigId, applicationId);
 
       setGigs((current) => {
         const remaining = current.filter((gig) => gig.id !== selectedGigId);
@@ -555,7 +555,9 @@ export default function ReviewScreen() {
         return remaining;
       });
       setApplications([]);
-      setNotice('Hire funded. This job moved out of the hiring queue.');
+      setNotice(
+        `Mock checkout passed. ${formatCurrency(result.payment.amount, result.payment.currency)} paid via ${result.checkout.providerReference}.`
+      );
     } catch {
       setNotice('Unable to fund this hire right now.');
     } finally {
