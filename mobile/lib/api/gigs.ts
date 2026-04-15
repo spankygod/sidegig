@@ -23,9 +23,11 @@ export async function fetchPublicGigs(
     limit?: number;
     longitude?: number;
     radiusKm?: number;
-  }
+  },
+  token?: string
 ): Promise<PublicGig[]> {
   const response = await request<{ gigs: PublicGig[] }>(baseUrl, '/v1/gigs', {
+    token,
     query: {
       category: filters?.category,
       city: filters?.city?.trim(),
@@ -45,9 +47,11 @@ export async function fetchPublicGig(
   filters?: {
     latitude?: number;
     longitude?: number;
-  }
+  },
+  token?: string
 ): Promise<PublicGig> {
   const response = await request<{ gig: PublicGig }>(baseUrl, `/v1/gigs/${gigId}`, {
+    token,
     query: {
       latitude: filters?.latitude,
       longitude: filters?.longitude,

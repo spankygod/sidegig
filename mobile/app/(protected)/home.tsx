@@ -585,7 +585,7 @@ export default function HomeScreen() {
 
     setIsWorkerLoading(true);
 
-    void fetchPublicGigs(apiBaseUrl, { limit: 6 })
+    void fetchPublicGigs(apiBaseUrl, { limit: 6 }, accessToken)
       .then((response) => {
         if (!isMounted) {
           return;
@@ -612,7 +612,7 @@ export default function HomeScreen() {
     return () => {
       isMounted = false;
     };
-  }, [apiBaseUrl]);
+  }, [accessToken, apiBaseUrl]);
 
   useEffect(() => {
     let isMounted = true;
