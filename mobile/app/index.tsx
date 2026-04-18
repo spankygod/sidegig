@@ -1,30 +1,33 @@
-import { Redirect } from 'expo-router';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
-
-import { useAppConfig } from '@/components/app-config-provider';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Redirect } from 'expo-router'
+import { ActivityIndicator, View } from 'react-native'
+import { palette } from '@/constants/palette'
+import { useColorScheme } from '@/hooks/use-color-scheme'
+import { useSession } from '@/providers/session-provider'
 
 export default function IndexScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
-  const palette = Colors[colorScheme];
-  const { accessToken, isAuthReady } = useAppConfig();
+  const colorScheme = useColorScheme()
+  const mode = colorScheme === 'dark' ? 'dark' : 'light'
+  const colors = palette[mode]
+  const { isReady, session } = useSession()
 
-  if (!isAuthReady) {
+  if (!isReady) {
     return (
-      <View style={[styles.screen, { backgroundColor: palette.background }]}>
-        <ActivityIndicator color={palette.tint} />
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: colors.background
+        }}
+      >
+        <ActivityIndicator color={colors.accent} size="large" />
       </View>
-    );
+    )
   }
 
-  return <Redirect href={accessToken === '' ? '/sign-in' : '/home'} />;
-}
+  if (session == null) {
+    return <Redirect href="/sign-in" />
+  }
 
-const styles = StyleSheet.create({
-  screen: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-  },
-});
+  return <Redirect href="/(tabs)" />
+}

@@ -27,7 +27,7 @@ async function checkPostgres (fastify: Parameters<FastifyPluginAsync>[0]): Promi
 }
 
 const healthRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.get('/health', async function (_request, reply) {
+  fastify.get('/', async function (_request, reply) {
     const postgres = await checkPostgres(fastify)
 
     const isHealthy = postgres.status === 'up'

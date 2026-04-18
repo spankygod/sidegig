@@ -1,71 +1,30 @@
+/**
+ * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
+ * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ */
+
 import { Platform } from 'react-native';
 
-const baseNeutralColors = {
-  background: '#ffffff',
-  border: '#d7deeb',
-  inputBackground: '#f4f7fb',
-  panel: '#ffffff',
-  primary: '#163b73',
-  text: '#163b73',
-  tint: '#163b73',
-  muted: '#6a7c9a',
-} as const;
-
-const neutralTheme = {
-  text: baseNeutralColors.text,
-  textStrong: '#102a52',
-  background: baseNeutralColors.background,
-  canvas: '#f7fafe',
-  surface: baseNeutralColors.panel,
-  surfaceAlt: baseNeutralColors.inputBackground,
-  border: baseNeutralColors.border,
-  borderSoft: '#e7edf5',
-  muted: baseNeutralColors.muted,
-  mutedSoft: '#8796b0',
-  placeholder: '#9dacbf',
-  accent: '#163b73',
-  accentStrong: '#0f2f5f',
-  accentSoft: '#edf3fb',
-  accentMuted: '#e8f0fb',
-  success: '#2f5f9e',
-  successSoft: '#e8eff9',
-  successSoftDark: '#1b2d49',
-  warning: '#456ea8',
-  warningSoft: '#edf3fb',
-  warningSoftDark: '#1d3150',
-  danger: '#8f2d3f',
-  tint: baseNeutralColors.tint,
-  inverseText: '#ffffff',
-  inverseMuted: 'rgba(255,255,255,0.9)',
-  overlayDark: 'rgba(9, 27, 54, 0.28)',
-  overlayLight: 'rgba(255,255,255,0.24)',
-  imageOverlay: 'rgba(16,42,82,0.14)',
-  ratingStar: '#f0b84b',
-  infoSurface: '#e3eefc',
-  infoText: '#1e4b88',
-  profileCoverSurface: '#e9f0fb',
-  profileAvatarSurface: '#dde9fa',
-  serviceCleaningSurface: '#edf3fb',
-  serviceMovingSurface: '#e9f0fb',
-  serviceMovingTint: '#2f5f9e',
-  serviceHelperSurface: '#edf2fa',
-  serviceHelperTint: '#456ea8',
-  serviceErrandSurface: '#eef2fb',
-  serviceErrandTint: '#375c97',
-  serviceAirconSurface: '#e3eefc',
-  serviceAirconTint: '#1e4b88',
-  shadow: '#163b73',
-  icon: '#6a7c9a',
-  tabIconDefault: '#95a5bc',
-  tabIconSelected: baseNeutralColors.tint,
-  card: baseNeutralColors.panel,
-  notification: baseNeutralColors.primary,
-  link: '#1e4b88',
-} as const;
+const tintColorLight = '#0a7ea4';
+const tintColorDark = '#fff';
 
 export const Colors = {
-  light: neutralTheme,
-  dark: neutralTheme,
+  light: {
+    text: '#11181C',
+    background: '#fff',
+    tint: tintColorLight,
+    icon: '#687076',
+    tabIconDefault: '#687076',
+    tabIconSelected: tintColorLight,
+  },
+  dark: {
+    text: '#ECEDEE',
+    background: '#151718',
+    tint: tintColorDark,
+    icon: '#9BA1A6',
+    tabIconDefault: '#9BA1A6',
+    tabIconSelected: tintColorDark,
+  },
 };
 
 export const Fonts = Platform.select({

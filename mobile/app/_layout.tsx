@@ -1,40 +1,77 @@
-import '@/global.css';
-import { DarkTheme, DefaultTheme, ThemeProvider, type Theme } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import '../global.css'
+import { Inter_400Regular, Inter_500Medium, Inter_700Bold } from '@expo-google-fonts/inter'
+import { DarkTheme, DefaultTheme, ThemeProvider, type Theme } from '@react-navigation/native'
+import { useFonts } from 'expo-font'
+import { Stack } from 'expo-router'
+import * as SplashScreen from 'expo-splash-screen'
+import { StatusBar } from 'expo-status-bar'
+import React from 'react'
+import 'react-native-reanimated'
+import { palette } from '@/constants/palette'
+import { useColorScheme } from '@/hooks/use-color-scheme'
+import { SessionProvider } from '@/providers/session-provider'
 
-import { AppConfigProvider } from '@/components/app-config-provider';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+export const unstable_settings = {
+  anchor: '(tabs)'
+}
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const palette = Colors[colorScheme ?? 'light'];
-  const baseTheme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
-  const theme: Theme = {
+void SplashScreen.preventAutoHideAsync()
+
+function buildTheme(mode: 'light' | 'dark'): Theme {
+  const colors = palette[mode]
+  const baseTheme = mode === 'dark' ? DarkTheme : DefaultTheme
+
+  return {
     ...baseTheme,
     colors: {
       ...baseTheme.colors,
-      background: palette.background,
-      border: palette.border,
-      card: palette.card,
-      notification: palette.notification,
-      primary: palette.tint,
-      text: palette.text,
-    },
-  };
+      background: colors.background,
+      card: colors.surface,
+      border: colors.border,
+      primary: colors.accent,
+      text: colors.text
+    }
+  }
+}
+
+export default function RootLayout() {
+  const colorScheme = useColorScheme()
+  const resolvedMode = colorScheme === 'dark' ? 'dark' : 'light'
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_700Bold
+  })
+
+  React.useEffect(() => {
+    if (!fontsLoaded) {
+      return
+    }
+
+    void SplashScreen.hideAsync()
+  }, [fontsLoaded])
+
+  if (!fontsLoaded) {
+    return null
+  }
 
   return (
-    <AppConfigProvider>
-      <ThemeProvider value={theme}>
-        <Stack>
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="(protected)" options={{ headerShown: false }} />
-          <Stack.Screen name="index" options={{ headerShown: false }} />
+    <SessionProvider>
+      <ThemeProvider value={buildTheme(resolvedMode)}>
+        <Stack
+          screenOptions={{
+            contentStyle: {
+              backgroundColor: palette[resolvedMode].background
+            },
+            headerBackButtonDisplayMode: 'minimal'
+          }}
+        >
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+          <Stack.Screen name="sign-in" options={{ headerShown: false }} />
         </Stack>
-        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+        <StatusBar style={resolvedMode === 'dark' ? 'light' : 'dark'} />
       </ThemeProvider>
-    </AppConfigProvider>
-  );
+    </SessionProvider>
+  )
 }

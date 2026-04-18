@@ -1,17 +1,19 @@
 {
   "expo": {
-    "name": "Raket",
-    "slug": "raket",
+    "name": "mobile",
+    "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "raket",
+    "scheme": "mobile",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "bundleIdentifier": "com.raket.mobile",
       "supportsTablet": true
     },
     "android": {
+      "package": "com.raket.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -19,8 +21,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "package": "com.spankygod.raket"
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
@@ -28,6 +29,12 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-dev-client",
+        {
+          "launchMode": "most-recent"
+        }
+      ],
       [
         "expo-splash-screen",
         {
@@ -39,14 +46,7 @@
             "backgroundColor": "#000000"
           }
         }
-      ],
-      [
-        "expo-web-browser",
-        {
-          "experimentalLauncherActivity": false
-        }
-      ],
-      "expo-secure-store"
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
@@ -54,11 +54,9 @@
     },
     "extra": {
       "router": {},
-      "apiBaseUrl": "http://127.0.0.1:3000",
       "eas": {
-        "projectId": "a26f8938-3592-4b3d-9d7b-c61e669b7bfd"
+        "projectId": "20819b2b-49a9-4b6e-b7ba-8f891fbce7b6"
       }
-    },
-    "owner": "raket-org"
+    }
   }
 }
