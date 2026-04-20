@@ -55,6 +55,9 @@ export interface PosterGigApplicationSummary {
       reviewCount: number
       jobsCompleted: number
       responseRate: number
+      gigsPosted: number
+      hiresFunded: number
+      hiresCompleted: number
     }
   }
 }

@@ -37,6 +37,9 @@ type PosterApplicationRow = {
   worker_review_count: number | null
   worker_jobs_completed: number | null
   worker_response_rate: number | null
+  worker_gigs_posted: number | null
+  worker_hires_funded: number | null
+  worker_hires_completed: number | null
 }
 
 function toIsoString (value: Date | string): string {
@@ -80,7 +83,10 @@ function mapPosterApplication (row: PosterApplicationRow): PosterGigApplicationS
         rating: Number(row.worker_rating ?? 0),
         reviewCount: row.worker_review_count ?? 0,
         jobsCompleted: row.worker_jobs_completed ?? 0,
-        responseRate: row.worker_response_rate ?? 0
+        responseRate: row.worker_response_rate ?? 0,
+        gigsPosted: row.worker_gigs_posted ?? 0,
+        hiresFunded: row.worker_hires_funded ?? 0,
+        hiresCompleted: row.worker_hires_completed ?? 0
       }
     }
   }
@@ -104,7 +110,10 @@ function posterApplicationSelect (): string {
       us.rating as worker_rating,
       us.review_count as worker_review_count,
       us.jobs_completed as worker_jobs_completed,
-      us.response_rate as worker_response_rate
+      us.response_rate as worker_response_rate,
+      us.gigs_posted as worker_gigs_posted,
+      us.hires_funded as worker_hires_funded,
+      us.hires_completed as worker_hires_completed
     from public.gig_applications ga
     inner join public.gig_posts g on g.id = ga.gig_id
     inner join public.profiles p on p.id = ga.worker_id

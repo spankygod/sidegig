@@ -1,6 +1,5 @@
 import { relations, sql } from 'drizzle-orm'
 import {
-  boolean,
   check,
   index,
   integer,
@@ -123,6 +122,9 @@ export const userStats = pgTable('user_stats', {
   reviewCount: integer('review_count').notNull().default(0),
   jobsCompleted: integer('jobs_completed').notNull().default(0),
   responseRate: integer('response_rate').notNull().default(0),
+  gigsPosted: integer('gigs_posted').notNull().default(0),
+  hiresFunded: integer('hires_funded').notNull().default(0),
+  hiresCompleted: integer('hires_completed').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 })
@@ -142,10 +144,6 @@ export const gigPosts = pgTable('gig_posts', {
   longitude: numeric('longitude', { precision: 9, scale: 6 }).notNull(),
   applicationRadiusKm: integer('application_radius_km').notNull().default(DEFAULT_GIG_APPLICATION_RADIUS_KM),
   scheduleSummary: text('schedule_summary').notNull(),
-  supervisorPresent: boolean('supervisor_present').notNull().default(false),
-  ppeProvided: boolean('ppe_provided').notNull().default(false),
-  helperOnlyConfirmation: boolean('helper_only_confirmation').notNull().default(false),
-  physicalLoad: text('physical_load'),
   startsAt: timestamp('starts_at', { withTimezone: true }),
   endsAt: timestamp('ends_at', { withTimezone: true }),
   status: gigStatusEnum('status').notNull().default('published'),
