@@ -13,6 +13,9 @@ export interface UserProfile {
     reviewCount: number
     jobsCompleted: number
     responseRate: number
+    gigsPosted: number
+    hiresFunded: number
+    hiresCompleted: number
   }
 }
 
@@ -28,6 +31,9 @@ export interface PublicUserProfile {
     reviewCount: number
     jobsCompleted: number
     responseRate: number
+    gigsPosted: number
+    hiresFunded: number
+    hiresCompleted: number
   }
 }
 

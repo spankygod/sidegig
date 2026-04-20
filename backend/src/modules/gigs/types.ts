@@ -54,10 +54,6 @@ export interface CreateGigInput {
   longitude: number
   applicationRadiusKm?: number
   scheduleSummary: string
-  supervisorPresent?: boolean
-  ppeProvided?: boolean
-  helperOnlyConfirmation?: boolean
-  physicalLoad?: string | null
   startsAt?: string | null
   endsAt?: string | null
   status?: Extract<GigStatus, 'draft' | 'published'>
@@ -75,10 +71,6 @@ export interface UpdateGigInput {
   longitude?: number
   applicationRadiusKm?: number
   scheduleSummary?: string
-  supervisorPresent?: boolean
-  ppeProvided?: boolean
-  helperOnlyConfirmation?: boolean
-  physicalLoad?: string | null
   startsAt?: string | null
   endsAt?: string | null
   status?: ManageableGigStatus
@@ -87,10 +79,20 @@ export interface UpdateGigInput {
 export interface GigListFilters {
   category?: GigCategory
   city?: string
+  q?: string
   latitude?: number
   longitude?: number
   radiusKm?: number
+  offset?: number
   limit: number
+}
+
+export interface PublicGigListResult {
+  gigs: PublicGig[]
+  total: number
+  offset: number
+  limit: number
+  hasMore: boolean
 }
 
 export interface PublicGig {
@@ -112,12 +114,6 @@ export interface PublicGig {
     barangay: string
     exactPinVisible: false
   }
-  construction: {
-    supervisorPresent: boolean
-    ppeProvided: boolean
-    helperOnlyConfirmation: boolean
-    physicalLoad: string | null
-  } | null
   poster: {
     id: string
     displayName: string
@@ -125,6 +121,9 @@ export interface PublicGig {
     reviewCount: number
     jobsCompleted: number
     responseRate: number
+    gigsPosted: number
+    hiresFunded: number
+    hiresCompleted: number
   }
   createdAt: string
 }

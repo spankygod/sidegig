@@ -8,6 +8,7 @@ import {
   type GigStatus,
   type OwnedGig,
   type PublicGig,
+  type PublicGigListResult,
   type UpdateGigInput
 } from './types'
 
@@ -40,6 +41,10 @@ type GigRow = {
   poster_review_count: number | null
   poster_jobs_completed: number | null
   poster_response_rate: number | null
+  poster_gigs_posted: number | null
+  poster_hires_funded: number | null
+  poster_hires_completed: number | null
+  total_count: number | null
 }
 
 type OwnedGigRow = {
@@ -92,21 +97,16 @@ function mapPublicGig (row: GigRow): PublicGig {
       barangay: row.barangay,
       exactPinVisible: false
     },
-    construction: row.category === 'construction_helper'
-      ? {
-          supervisorPresent: row.supervisor_present,
-          ppeProvided: row.ppe_provided,
-          helperOnlyConfirmation: row.helper_only_confirmation,
-          physicalLoad: row.physical_load
-        }
-      : null,
     poster: {
       id: row.poster_id,
       displayName: row.poster_display_name,
       rating: Number(row.poster_rating ?? 0),
       reviewCount: row.poster_review_count ?? 0,
       jobsCompleted: row.poster_jobs_completed ?? 0,
-      responseRate: row.poster_response_rate ?? 0
+      responseRate: row.poster_response_rate ?? 0,
+      gigsPosted: row.poster_gigs_posted ?? 0,
+      hiresFunded: row.poster_hires_funded ?? 0,
+      hiresCompleted: row.poster_hires_completed ?? 0
     },
     createdAt: toIsoString(row.created_at)
   }
@@ -149,14 +149,6 @@ function mapOwnedGig (row: OwnedGigRow): OwnedGig {
       longitude: Number(row.longitude),
       exactPinVisible: true
     },
-    construction: row.category === 'construction_helper'
-      ? {
-          supervisorPresent: row.supervisor_present,
-          ppeProvided: row.ppe_provided,
-          helperOnlyConfirmation: row.helper_only_confirmation,
-          physicalLoad: row.physical_load
-        }
-      : null,
     createdAt: toIsoString(row.created_at),
     updatedAt: toIsoString(row.updated_at),
     applicationCount: row.application_count
@@ -180,10 +172,6 @@ function ownedGigSelect (): string {
       g.latitude,
       g.longitude,
       g.application_radius_km,
-      g.supervisor_present,
-      g.ppe_provided,
-      g.helper_only_confirmation,
-      g.physical_load,
       g.starts_at,
       g.ends_at,
       g.created_at,
@@ -199,7 +187,7 @@ function ownedGigSelect (): string {
   `
 }
 
-export async function listPublicGigs (db: Pool, filters: GigListFilters): Promise<PublicGig[]> {
+export async function listPublicGigs (db: Pool, filters: GigListFilters): Promise<PublicGigListResult> {
   const values: Array<string | number> = []
   const conditions: string[] = [
     `g.status = 'published'`
@@ -217,6 +205,17 @@ export async function listPublicGigs (db: Pool, filters: GigListFilters): Promis
     conditions.push(`g.city = $${values.length}`)
   }
 
+  if (filters.q != null && filters.q.trim() !== '') {
+    values.push(`%${filters.q.trim()}%`)
+    conditions.push(`(
+      g.title ilike $${values.length}
+      or g.description ilike $${values.length}
+      or g.schedule_summary ilike $${values.length}
+      or g.city ilike $${values.length}
+      or g.barangay ilike $${values.length}
+    )`)
+  }
+
   if (filters.latitude != null && filters.longitude != null) {
     values.push(filters.latitude)
     const latitudeParam = values.length
@@ -231,6 +230,9 @@ export async function listPublicGigs (db: Pool, filters: GigListFilters): Promis
   }
 
   values.push(filters.limit)
+  const limitParam = values.length
+  values.push(filters.offset ?? 0)
+  const offsetParam = values.length
 
   const query = `
     select
@@ -248,10 +250,6 @@ export async function listPublicGigs (db: Pool, filters: GigListFilters): Promis
       g.latitude,
       g.longitude,
       g.application_radius_km,
-      g.supervisor_present,
-      g.ppe_provided,
-      g.helper_only_confirmation,
-      g.physical_load,
       g.starts_at,
       g.ends_at,
       g.created_at,
@@ -261,18 +259,31 @@ export async function listPublicGigs (db: Pool, filters: GigListFilters): Promis
       us.rating as poster_rating,
       us.review_count as poster_review_count,
       us.jobs_completed as poster_jobs_completed,
-      us.response_rate as poster_response_rate
+      us.response_rate as poster_response_rate,
+      us.gigs_posted as poster_gigs_posted,
+      us.hires_funded as poster_hires_funded,
+      us.hires_completed as poster_hires_completed,
+      count(*) over()::int as total_count
     from public.gig_posts g
     inner join public.profiles p on p.id = g.poster_id
     left join public.user_stats us on us.user_id = p.id
     where ${conditions.join(' and ')}
     order by ${orderBy}
-    limit $${values.length}
+    limit $${limitParam}
+    offset $${offsetParam}
   `
 
   const result = await db.query<GigRow>(query, values)
 
-  return result.rows.map(mapPublicGig)
+  const total = result.rows[0]?.total_count ?? 0
+
+  return {
+    gigs: result.rows.map(mapPublicGig),
+    total,
+    offset: filters.offset ?? 0,
+    limit: filters.limit,
+    hasMore: (filters.offset ?? 0) + result.rows.length < total
+  }
 }
 
 export async function getPublicGigById (
@@ -312,10 +323,6 @@ export async function getPublicGigById (
         g.latitude,
         g.longitude,
         g.application_radius_km,
-        g.supervisor_present,
-        g.ppe_provided,
-        g.helper_only_confirmation,
-        g.physical_load,
         g.starts_at,
         g.ends_at,
         g.created_at,
@@ -325,7 +332,11 @@ export async function getPublicGigById (
         us.rating as poster_rating,
         us.review_count as poster_review_count,
         us.jobs_completed as poster_jobs_completed,
-        us.response_rate as poster_response_rate
+        us.response_rate as poster_response_rate,
+        us.gigs_posted as poster_gigs_posted,
+        us.hires_funded as poster_hires_funded,
+        us.hires_completed as poster_hires_completed,
+        null::int as total_count
       from public.gig_posts g
       inner join public.profiles p on p.id = g.poster_id
       left join public.user_stats us on us.user_id = p.id
@@ -396,9 +407,13 @@ export async function createGig (
   posterId: string,
   input: CreateGigInput
 ): Promise<CreatedGig> {
-  const result = await db.query<GigRow>(
-    `
-      with inserted as (
+  const client = await db.connect()
+
+  try {
+    await client.query('begin')
+
+    const insertResult = await client.query<{ id: string }>(
+      `
         insert into public.gig_posts (
           poster_id,
           title,
@@ -412,77 +427,107 @@ export async function createGig (
           longitude,
           application_radius_km,
           schedule_summary,
-          supervisor_present,
-          ppe_provided,
-          helper_only_confirmation,
-          physical_load,
           starts_at,
           ends_at,
           status
         )
         values (
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-          $11, $12, $13, $14, $15, $16, $17, $18, $19
+          $11, $12, $13, $14, $15
         )
-        returning *
-      )
-      select
-        inserted.id,
-        inserted.title,
-        inserted.category,
-        inserted.description,
-        inserted.price_amount,
-        inserted.currency,
-        inserted.duration_bucket,
-        inserted.status,
-        inserted.schedule_summary,
-        inserted.city,
-        inserted.barangay,
-        inserted.latitude,
-        inserted.longitude,
-        inserted.application_radius_km,
-        inserted.supervisor_present,
-        inserted.ppe_provided,
-        inserted.helper_only_confirmation,
-        inserted.physical_load,
-        inserted.starts_at,
-        inserted.ends_at,
-        inserted.created_at,
-        null::numeric as distance_km,
-        p.id as poster_id,
-        p.display_name as poster_display_name,
-        us.rating as poster_rating,
-        us.review_count as poster_review_count,
-        us.jobs_completed as poster_jobs_completed,
-        us.response_rate as poster_response_rate
-      from inserted
-      inner join public.profiles p on p.id = inserted.poster_id
-      left join public.user_stats us on us.user_id = p.id
-    `,
-    [
-      posterId,
-      input.title,
-      input.category,
-      input.description,
-      input.priceAmount,
-      input.durationBucket,
-      input.city,
-      input.barangay,
-      input.latitude,
-      input.longitude,
-      input.applicationRadiusKm ?? DEFAULT_GIG_APPLICATION_RADIUS_KM,
-      input.scheduleSummary,
-      input.supervisorPresent ?? false,
-      input.ppeProvided ?? false,
-      input.helperOnlyConfirmation ?? false,
-      input.physicalLoad ?? null,
-      input.startsAt ?? null,
-      input.endsAt ?? null,
-      input.status ?? 'published'
-    ]
-  )
+        returning id
+      `,
+      [
+        posterId,
+        input.title,
+        input.category,
+        input.description,
+        input.priceAmount,
+        input.durationBucket,
+        input.city,
+        input.barangay,
+        input.latitude,
+        input.longitude,
+        input.applicationRadiusKm ?? DEFAULT_GIG_APPLICATION_RADIUS_KM,
+        input.scheduleSummary,
+        input.startsAt ?? null,
+        input.endsAt ?? null,
+        input.status ?? 'published'
+      ]
+    )
 
-  return mapCreatedGig(result.rows[0])
+    const createdGigId = insertResult.rows[0]?.id
+
+    if (createdGigId == null) {
+      throw new Error('Gig creation did not return an id.')
+    }
+
+    await client.query(
+      `
+        insert into public.user_stats (user_id)
+        values ($1)
+        on conflict (user_id) do nothing
+      `,
+      [posterId]
+    )
+
+    await client.query(
+      `
+        update public.user_stats
+        set gigs_posted = gigs_posted + 1
+        where user_id = $1
+      `,
+      [posterId]
+    )
+
+    const result = await client.query<GigRow>(
+      `
+        select
+          g.id,
+          g.title,
+          g.category,
+          g.description,
+          g.price_amount,
+          g.currency,
+          g.duration_bucket,
+          g.status,
+          g.schedule_summary,
+          g.city,
+          g.barangay,
+          g.latitude,
+          g.longitude,
+          g.application_radius_km,
+          g.starts_at,
+          g.ends_at,
+          g.created_at,
+          null::numeric as distance_km,
+          p.id as poster_id,
+          p.display_name as poster_display_name,
+          us.rating as poster_rating,
+          us.review_count as poster_review_count,
+          us.jobs_completed as poster_jobs_completed,
+          us.response_rate as poster_response_rate,
+          us.gigs_posted as poster_gigs_posted,
+          us.hires_funded as poster_hires_funded,
+          us.hires_completed as poster_hires_completed,
+          null::int as total_count
+        from public.gig_posts g
+        inner join public.profiles p on p.id = g.poster_id
+        left join public.user_stats us on us.user_id = p.id
+        where g.id = $1
+      `,
+      [createdGigId]
+    )
+
+    await client.query('commit')
+
+    return mapCreatedGig(result.rows[0])
+  } catch (error) {
+    await client.query('rollback')
+    throw error
+  } finally {
+    client.release()
+  }
 }
 
 export async function updatePosterGig (
@@ -507,13 +552,9 @@ export async function updatePosterGig (
           longitude = case when $12::boolean then $13 else longitude end,
           application_radius_km = coalesce($14, application_radius_km),
           schedule_summary = coalesce($15, schedule_summary),
-          supervisor_present = case when $16::boolean then $17 else supervisor_present end,
-          ppe_provided = case when $18::boolean then $19 else ppe_provided end,
-          helper_only_confirmation = case when $20::boolean then $21 else helper_only_confirmation end,
-          physical_load = case when $22::boolean then $23 else physical_load end,
-          starts_at = case when $24::boolean then $25 else starts_at end,
-          ends_at = case when $26::boolean then $27 else ends_at end,
-          status = coalesce($28, status)
+          starts_at = case when $16::boolean then $17 else starts_at end,
+          ends_at = case when $18::boolean then $19 else ends_at end,
+          status = coalesce($20, status)
         where id = $1
           and poster_id = $2
         returning *
@@ -533,10 +574,6 @@ export async function updatePosterGig (
         updated.latitude,
         updated.longitude,
         updated.application_radius_km,
-        updated.supervisor_present,
-        updated.ppe_provided,
-        updated.helper_only_confirmation,
-        updated.physical_load,
         updated.starts_at,
         updated.ends_at,
         updated.created_at,
@@ -566,14 +603,6 @@ export async function updatePosterGig (
       input.longitude ?? null,
       input.applicationRadiusKm,
       input.scheduleSummary,
-      Object.prototype.hasOwnProperty.call(input, 'supervisorPresent'),
-      input.supervisorPresent ?? false,
-      Object.prototype.hasOwnProperty.call(input, 'ppeProvided'),
-      input.ppeProvided ?? false,
-      Object.prototype.hasOwnProperty.call(input, 'helperOnlyConfirmation'),
-      input.helperOnlyConfirmation ?? false,
-      Object.prototype.hasOwnProperty.call(input, 'physicalLoad'),
-      input.physicalLoad ?? null,
       Object.prototype.hasOwnProperty.call(input, 'startsAt'),
       input.startsAt ?? null,
       Object.prototype.hasOwnProperty.call(input, 'endsAt'),

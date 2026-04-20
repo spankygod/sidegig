@@ -25,7 +25,6 @@ import {
   type CreateGigInput,
   type GigCategory,
   type GigStatus,
-  type OwnedGig,
   type UpdateGigInput
 } from '../../../modules/gigs/types'
 import { ensureUserProfile, getWorkerServiceArea } from '../../../modules/users/repository'
@@ -34,9 +33,11 @@ import { findContactDetailViolationInFields, formatModerationViolation } from '.
 type ListGigsQuery = {
   category?: GigCategory
   city?: string
+  q?: string
   latitude?: number
   longitude?: number
   radiusKm?: number
+  offset?: number
   limit?: number
 }
 
@@ -66,70 +67,6 @@ function hasOwnProperty (value: object, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(value, key)
 }
 
-function normalizeNullableString (value: string | null | undefined): string | null | undefined {
-  if (value == null) {
-    return value
-  }
-
-  const trimmed = value.trim()
-  return trimmed === '' ? null : trimmed
-}
-
-function validateConstructionRequirements (input: {
-  category: GigCategory
-  supervisorPresent: boolean
-  ppeProvided: boolean
-  helperOnlyConfirmation: boolean
-  physicalLoad: string | null
-  startsAt: string | null
-  endsAt: string | null
-}): string | null {
-  if (input.category !== 'construction_helper') {
-    return null
-  }
-
-  if (
-    !input.supervisorPresent ||
-    !input.ppeProvided ||
-    input.helperOnlyConfirmation !== true ||
-    input.physicalLoad == null ||
-    input.startsAt == null ||
-    input.endsAt == null
-  ) {
-    return 'Construction helper gigs require supervisor, PPE, helper-only confirmation, physical load, and start/end time'
-  }
-
-  if (new Date(input.endsAt).getTime() <= new Date(input.startsAt).getTime()) {
-    return 'Construction helper gigs must end after the start time'
-  }
-
-  return null
-}
-
-function buildUpdateValidationState (existingGig: OwnedGig, body: UpdateGigBody) {
-  return {
-    category: body.category ?? existingGig.category,
-    supervisorPresent: hasOwnProperty(body, 'supervisorPresent')
-      ? body.supervisorPresent ?? false
-      : existingGig.construction?.supervisorPresent ?? false,
-    ppeProvided: hasOwnProperty(body, 'ppeProvided')
-      ? body.ppeProvided ?? false
-      : existingGig.construction?.ppeProvided ?? false,
-    helperOnlyConfirmation: hasOwnProperty(body, 'helperOnlyConfirmation')
-      ? body.helperOnlyConfirmation ?? false
-      : existingGig.construction?.helperOnlyConfirmation ?? false,
-    physicalLoad: hasOwnProperty(body, 'physicalLoad')
-      ? normalizeNullableString(body.physicalLoad) ?? null
-      : existingGig.construction?.physicalLoad ?? null,
-    startsAt: hasOwnProperty(body, 'startsAt')
-      ? body.startsAt ?? null
-      : existingGig.startsAt,
-    endsAt: hasOwnProperty(body, 'endsAt')
-      ? body.endsAt ?? null
-      : existingGig.endsAt
-  }
-}
-
 function buildUpdateInput (body: UpdateGigBody): UpdateGigInput {
   return {
     title: body.title?.trim(),
@@ -143,12 +80,6 @@ function buildUpdateInput (body: UpdateGigBody): UpdateGigInput {
     longitude: hasOwnProperty(body, 'longitude') ? body.longitude : undefined,
     applicationRadiusKm: body.applicationRadiusKm,
     scheduleSummary: body.scheduleSummary?.trim(),
-    supervisorPresent: body.supervisorPresent,
-    ppeProvided: body.ppeProvided,
-    helperOnlyConfirmation: body.helperOnlyConfirmation,
-    physicalLoad: hasOwnProperty(body, 'physicalLoad')
-      ? normalizeNullableString(body.physicalLoad)
-      : undefined,
     startsAt: hasOwnProperty(body, 'startsAt') ? body.startsAt ?? null : undefined,
     endsAt: hasOwnProperty(body, 'endsAt') ? body.endsAt ?? null : undefined,
     status: body.status
@@ -168,10 +99,6 @@ function hasContentEdits (body: UpdateGigBody): boolean {
     'longitude',
     'applicationRadiusKm',
     'scheduleSummary',
-    'supervisorPresent',
-    'ppeProvided',
-    'helperOnlyConfirmation',
-    'physicalLoad',
     'startsAt',
     'endsAt'
   ]
@@ -183,8 +110,7 @@ function findGigContentViolation (body: Partial<CreateGigInput | UpdateGigInput>
   const violation = findContactDetailViolationInFields([
     { label: 'Gig title', value: body.title },
     { label: 'Gig description', value: body.description },
-    { label: 'Schedule summary', value: body.scheduleSummary },
-    { label: 'Physical load', value: body.physicalLoad }
+    { label: 'Schedule summary', value: body.scheduleSummary }
   ])
 
   return violation == null ? null : formatModerationViolation(violation)
@@ -200,9 +126,11 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
         properties: {
           category: { type: 'string', enum: [...GIG_CATEGORIES] },
           city: { type: 'string', minLength: 1, maxLength: 80 },
+          q: { type: 'string', minLength: 1, maxLength: 120 },
           latitude: { type: 'number', minimum: -90, maximum: 90 },
           longitude: { type: 'number', minimum: -180, maximum: 180 },
           radiusKm: { type: 'integer', minimum: 1, maximum: 200 },
+          offset: { type: 'integer', minimum: 0, maximum: 5000 },
           limit: { type: 'integer', minimum: 1, maximum: 50 }
         }
       }
@@ -229,17 +157,25 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
       serviceRadiusKm: request.query.radiusKm
     }
 
-    const gigs = await listPublicGigs(fastify.db, {
+    const result = await listPublicGigs(fastify.db, {
       category: request.query.category,
       city: request.query.city?.trim(),
+      q: request.query.q?.trim(),
       latitude: proximitySource.latitude ?? undefined,
       longitude: proximitySource.longitude ?? undefined,
       radiusKm: proximitySource.serviceRadiusKm ?? undefined,
+      offset: request.query.offset ?? 0,
       limit: request.query.limit ?? 20
     })
 
     return {
-      gigs
+      gigs: result.gigs,
+      page: {
+        total: result.total,
+        offset: result.offset,
+        limit: result.limit,
+        hasMore: result.hasMore
+      }
     }
   })
 
@@ -402,10 +338,6 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
           longitude: { type: 'number', minimum: -180, maximum: 180 },
           applicationRadiusKm: { type: 'integer', minimum: 1, maximum: 200 },
           scheduleSummary: { type: 'string', minLength: 4, maxLength: 280 },
-          supervisorPresent: { type: 'boolean' },
-          ppeProvided: { type: 'boolean' },
-          helperOnlyConfirmation: { type: 'boolean' },
-          physicalLoad: { anyOf: [{ type: 'string', minLength: 1, maxLength: 80 }, { type: 'null' }] },
           startsAt: { anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }] },
           endsAt: { anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }] },
           status: { type: 'string', enum: ['draft', 'published'] }
@@ -414,22 +346,6 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, async function (request, reply) {
     await ensureUserProfile(fastify.db, request.authUser!)
-
-    const physicalLoad = normalizeNullableString(request.body.physicalLoad) ?? null
-    const constructionError = validateConstructionRequirements({
-      category: request.body.category,
-      supervisorPresent: request.body.supervisorPresent ?? false,
-      ppeProvided: request.body.ppeProvided ?? false,
-      helperOnlyConfirmation: request.body.helperOnlyConfirmation ?? false,
-      physicalLoad,
-      startsAt: request.body.startsAt ?? null,
-      endsAt: request.body.endsAt ?? null
-    })
-
-    if (constructionError != null) {
-      reply.badRequest(constructionError)
-      return
-    }
 
     const moderationViolation = findGigContentViolation(request.body)
 
@@ -446,7 +362,6 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
       barangay: request.body.barangay.trim(),
       scheduleSummary: request.body.scheduleSummary.trim(),
       applicationRadiusKm: request.body.applicationRadiusKm,
-      physicalLoad,
       status: request.body.status
     })
 
@@ -483,10 +398,6 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
           longitude: { type: 'number', minimum: -180, maximum: 180 },
           applicationRadiusKm: { type: 'integer', minimum: 1, maximum: 200 },
           scheduleSummary: { type: 'string', minLength: 4, maxLength: 280 },
-          supervisorPresent: { type: 'boolean' },
-          ppeProvided: { type: 'boolean' },
-          helperOnlyConfirmation: { type: 'boolean' },
-          physicalLoad: { anyOf: [{ type: 'string', minLength: 1, maxLength: 80 }, { type: 'null' }] },
           startsAt: { anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }] },
           endsAt: { anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }] },
           status: { type: 'string', enum: [...MANAGEABLE_GIG_STATUSES] }
@@ -531,13 +442,6 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
 
     if (requestedStatus === 'draft' && existingGig.applicationCount > 0) {
       reply.conflict('Gigs with applications cannot move back to draft')
-      return
-    }
-
-    const constructionError = validateConstructionRequirements(buildUpdateValidationState(existingGig, request.body))
-
-    if (constructionError != null) {
-      reply.badRequest(constructionError)
       return
     }
 

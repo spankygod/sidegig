@@ -27,10 +27,6 @@ type HireWorkDetailRow = HireRow & {
   gig_barangay: string
   gig_latitude: string | number
   gig_longitude: string | number
-  gig_supervisor_present: boolean
-  gig_ppe_provided: boolean
-  gig_helper_only_confirmation: boolean
-  gig_physical_load: string | null
   gig_starts_at: Date | string | null
   gig_ends_at: Date | string | null
   gig_created_at: Date | string
@@ -47,6 +43,9 @@ type HireWorkDetailRow = HireRow & {
   poster_review_count: number | null
   poster_jobs_completed: number | null
   poster_response_rate: number | null
+  poster_gigs_posted: number | null
+  poster_hires_funded: number | null
+  poster_hires_completed: number | null
   worker_display_name: string
   worker_city: string | null
   worker_barangay: string | null
@@ -54,6 +53,9 @@ type HireWorkDetailRow = HireRow & {
   worker_review_count: number | null
   worker_jobs_completed: number | null
   worker_response_rate: number | null
+  worker_gigs_posted: number | null
+  worker_hires_funded: number | null
+  worker_hires_completed: number | null
 }
 
 type HireTransitionInput = {
@@ -108,14 +110,6 @@ function mapHireWorkDetail (row: HireWorkDetailRow, userId: string): HireWorkDet
         longitude: Number(row.gig_longitude),
         exactPinVisible: true
       },
-      construction: row.gig_category === 'construction_helper'
-        ? {
-            supervisorPresent: row.gig_supervisor_present,
-            ppeProvided: row.gig_ppe_provided,
-            helperOnlyConfirmation: row.gig_helper_only_confirmation,
-            physicalLoad: row.gig_physical_load
-          }
-        : null,
       createdAt: toIsoString(row.gig_created_at),
       updatedAt: toIsoString(row.gig_updated_at)
     },
@@ -136,7 +130,10 @@ function mapHireWorkDetail (row: HireWorkDetailRow, userId: string): HireWorkDet
         rating: Number(row.poster_rating ?? 0),
         reviewCount: row.poster_review_count ?? 0,
         jobsCompleted: row.poster_jobs_completed ?? 0,
-        responseRate: row.poster_response_rate ?? 0
+        responseRate: row.poster_response_rate ?? 0,
+        gigsPosted: row.poster_gigs_posted ?? 0,
+        hiresFunded: row.poster_hires_funded ?? 0,
+        hiresCompleted: row.poster_hires_completed ?? 0
       }
     },
     worker: {
@@ -148,7 +145,10 @@ function mapHireWorkDetail (row: HireWorkDetailRow, userId: string): HireWorkDet
         rating: Number(row.worker_rating ?? 0),
         reviewCount: row.worker_review_count ?? 0,
         jobsCompleted: row.worker_jobs_completed ?? 0,
-        responseRate: row.worker_response_rate ?? 0
+        responseRate: row.worker_response_rate ?? 0,
+        gigsPosted: row.worker_gigs_posted ?? 0,
+        hiresFunded: row.worker_hires_funded ?? 0,
+        hiresCompleted: row.worker_hires_completed ?? 0
       }
     }
   }
@@ -234,11 +234,29 @@ async function updateHireStatus (
 
       await client.query(
         `
+          insert into public.user_stats (user_id)
+          values ($1)
+          on conflict (user_id) do nothing
+        `,
+        [current.poster_id]
+      )
+
+      await client.query(
+        `
           update public.user_stats
           set jobs_completed = jobs_completed + 1
           where user_id = $1
         `,
         [current.worker_id]
+      )
+
+      await client.query(
+        `
+          update public.user_stats
+          set hires_completed = hires_completed + 1
+          where user_id = $1
+        `,
+        [current.poster_id]
       )
     }
 
@@ -297,6 +315,15 @@ export async function fundGigHire (
 
     await client.query(
       `
+        insert into public.user_stats (user_id)
+        values ($1)
+        on conflict (user_id) do nothing
+      `,
+      [input.posterId]
+    )
+
+    await client.query(
+      `
         update public.gig_applications
         set status = 'hired'
         where id = $1
@@ -347,6 +374,15 @@ export async function fundGigHire (
           updated_at
       `,
       [eligible.gig_id, eligible.application_id, input.posterId, eligible.worker_id]
+    )
+
+    await client.query(
+      `
+        update public.user_stats
+        set hires_funded = hires_funded + 1
+        where user_id = $1
+      `,
+      [input.posterId]
     )
 
     await client.query('commit')
@@ -462,10 +498,6 @@ export async function getHireWorkDetail (
         g.barangay as gig_barangay,
         g.latitude as gig_latitude,
         g.longitude as gig_longitude,
-        g.supervisor_present as gig_supervisor_present,
-        g.ppe_provided as gig_ppe_provided,
-        g.helper_only_confirmation as gig_helper_only_confirmation,
-        g.physical_load as gig_physical_load,
         g.starts_at as gig_starts_at,
         g.ends_at as gig_ends_at,
         g.created_at as gig_created_at,
@@ -482,13 +514,19 @@ export async function getHireWorkDetail (
         poster_stats.review_count as poster_review_count,
         poster_stats.jobs_completed as poster_jobs_completed,
         poster_stats.response_rate as poster_response_rate,
+        poster_stats.gigs_posted as poster_gigs_posted,
+        poster_stats.hires_funded as poster_hires_funded,
+        poster_stats.hires_completed as poster_hires_completed,
         worker.display_name as worker_display_name,
         worker.city as worker_city,
         worker.barangay as worker_barangay,
         worker_stats.rating as worker_rating,
         worker_stats.review_count as worker_review_count,
         worker_stats.jobs_completed as worker_jobs_completed,
-        worker_stats.response_rate as worker_response_rate
+        worker_stats.response_rate as worker_response_rate,
+        worker_stats.gigs_posted as worker_gigs_posted,
+        worker_stats.hires_funded as worker_hires_funded,
+        worker_stats.hires_completed as worker_hires_completed
       from public.hires h
       inner join public.gig_posts g on g.id = h.gig_id
       inner join public.gig_applications ga on ga.id = h.application_id

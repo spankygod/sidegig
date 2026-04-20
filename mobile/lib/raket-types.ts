@@ -44,6 +44,9 @@ export interface UserProfile {
     reviewCount: number
     jobsCompleted: number
     responseRate: number
+    gigsPosted: number
+    hiresFunded: number
+    hiresCompleted: number
   }
 }
 
@@ -68,15 +71,76 @@ export interface OwnedGig {
     longitude: number
     exactPinVisible: true
   }
-  construction: {
-    supervisorPresent: boolean
-    ppeProvided: boolean
-    helperOnlyConfirmation: boolean
-    physicalLoad: string | null
-  } | null
   applicationCount: number
   updatedAt: string
   createdAt: string
+}
+
+export interface PublicGig {
+  id: string
+  title: string
+  category: GigCategory
+  description: string
+  priceAmount: number
+  currency: 'PHP'
+  durationBucket: DurationBucket
+  status: string
+  applicationRadiusKm: number
+  distanceKm: number | null
+  scheduleSummary: string
+  startsAt: string | null
+  endsAt: string | null
+  location: {
+    city: string
+    barangay: string
+    exactPinVisible: false
+  }
+  poster: {
+    id: string
+    displayName: string
+    rating: number
+    reviewCount: number
+    jobsCompleted: number
+    responseRate: number
+    gigsPosted: number
+    hiresFunded: number
+    hiresCompleted: number
+  }
+  createdAt: string
+}
+
+export interface PublicGigFeedPage {
+  total: number
+  offset: number
+  limit: number
+  hasMore: boolean
+}
+
+export interface PublicGigFeedResult {
+  gigs: PublicGig[]
+  page: PublicGigFeedPage
+}
+
+export interface CreateGigApplicationPayload {
+  gigId: string
+  intro: string
+  availability: string
+}
+
+export interface GigApplicationSummary {
+  id: string
+  status: 'submitted' | 'rejected' | 'withdrawn' | 'hired' | 'closed'
+  intro: string
+  availability: string
+  createdAt: string
+  gig: {
+    id: string
+    title: string
+    category: string
+    city: string
+    barangay: string
+    status: string
+  }
 }
 
 export interface CreateGigPayload {
@@ -91,10 +155,6 @@ export interface CreateGigPayload {
   longitude: number
   applicationRadiusKm?: number
   scheduleSummary: string
-  supervisorPresent?: boolean
-  ppeProvided?: boolean
-  helperOnlyConfirmation?: boolean
-  physicalLoad?: string | null
   startsAt?: string | null
   endsAt?: string | null
   status?: 'draft' | 'published'

@@ -12,7 +12,6 @@ function FloatingTabBar({ descriptors, navigation, state }: BottomTabBarProps) {
   const { width: windowWidth } = useWindowDimensions()
   const dockWidth = Math.min(windowWidth - 24, 208)
   const activeRouteKey = state.routes[state.index]?.key
-  const visibleRoutes = state.routes.filter((route) => descriptors[route.key].options.href !== null)
 
   return (
     <View
@@ -25,7 +24,7 @@ function FloatingTabBar({ descriptors, navigation, state }: BottomTabBarProps) {
       ]}
     >
       <View style={[styles.dock, { width: dockWidth }]}> 
-        {visibleRoutes.map((route) => {
+        {state.routes.map((route) => {
           const descriptor = descriptors[route.key]
           const { options } = descriptor
           const isFocused = route.key === activeRouteKey
@@ -140,7 +139,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="messages"
         options={{
-          title: 'Message',
+          title: 'Messages',
+          headerShown: false,
           tabBarIcon: ({ color, focused, size }) => (
             <Ionicons color={color} name={focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'} size={size} />
           )

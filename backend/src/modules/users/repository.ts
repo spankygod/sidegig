@@ -17,6 +17,9 @@ type UserProfileRow = {
   review_count: number | null
   jobs_completed: number | null
   response_rate: number | null
+  gigs_posted: number | null
+  hires_funded: number | null
+  hires_completed: number | null
 }
 
 function mapUserProfile (row: UserProfileRow): UserProfile {
@@ -34,7 +37,10 @@ function mapUserProfile (row: UserProfileRow): UserProfile {
       rating: Number(row.rating ?? 0),
       reviewCount: row.review_count ?? 0,
       jobsCompleted: row.jobs_completed ?? 0,
-      responseRate: row.response_rate ?? 0
+      responseRate: row.response_rate ?? 0,
+      gigsPosted: row.gigs_posted ?? 0,
+      hiresFunded: row.hires_funded ?? 0,
+      hiresCompleted: row.hires_completed ?? 0
     }
   }
 }
@@ -51,7 +57,10 @@ function mapPublicUserProfile (row: UserProfileRow): PublicUserProfile {
       rating: Number(row.rating ?? 0),
       reviewCount: row.review_count ?? 0,
       jobsCompleted: row.jobs_completed ?? 0,
-      responseRate: row.response_rate ?? 0
+      responseRate: row.response_rate ?? 0,
+      gigsPosted: row.gigs_posted ?? 0,
+      hiresFunded: row.hires_funded ?? 0,
+      hiresCompleted: row.hires_completed ?? 0
     }
   }
 }
@@ -95,7 +104,10 @@ export async function ensureUserProfile (
         us.rating,
         us.review_count,
         us.jobs_completed,
-        us.response_rate
+        us.response_rate,
+        us.gigs_posted,
+        us.hires_funded,
+        us.hires_completed
       from public.profiles p
       left join public.user_stats us on us.user_id = p.id
       where p.id = $1
@@ -158,7 +170,10 @@ export async function getPublicUserProfileById (
         us.rating,
         us.review_count,
         us.jobs_completed,
-        us.response_rate
+        us.response_rate,
+        us.gigs_posted,
+        us.hires_funded,
+        us.hires_completed
       from public.profiles p
       left join public.user_stats us on us.user_id = p.id
       where p.id = $1
@@ -205,7 +220,10 @@ export async function updateUserProfile (
         0::numeric as rating,
         0::int as review_count,
         0::int as jobs_completed,
-        0::int as response_rate
+        0::int as response_rate,
+        0::int as gigs_posted,
+        0::int as hires_funded,
+        0::int as hires_completed
     `,
     [
       userId,
@@ -226,13 +244,16 @@ export async function updateUserProfile (
     ]
   )
 
-  const statsResult = await db.query<Pick<UserProfileRow, 'rating' | 'review_count' | 'jobs_completed' | 'response_rate'>>(
+  const statsResult = await db.query<Pick<UserProfileRow, 'rating' | 'review_count' | 'jobs_completed' | 'response_rate' | 'gigs_posted' | 'hires_funded' | 'hires_completed'>>(
     `
       select
         rating,
         review_count,
         jobs_completed,
-        response_rate
+        response_rate,
+        gigs_posted,
+        hires_funded,
+        hires_completed
       from public.user_stats
       where user_id = $1
     `,
@@ -243,7 +264,10 @@ export async function updateUserProfile (
     rating: 0,
     review_count: 0,
     jobs_completed: 0,
-    response_rate: 0
+    response_rate: 0,
+    gigs_posted: 0,
+    hires_funded: 0,
+    hires_completed: 0
   }
 
   return mapUserProfile({

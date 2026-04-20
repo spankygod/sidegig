@@ -8,40 +8,49 @@ import {
   formatPhpCurrency,
   type GigCategory,
   type OwnedGig,
+  type PublicGig,
   type UserProfile
 } from '@/lib/raket-types'
 
 type FindGigHomeViewProps = {
-  discoveryGigs: OwnedGig[]
+  discoveryError: string | null
+  discoveryGigs: PublicGig[]
+  discoveryHasMore: boolean
   discoveryPage: number
   discoveryPageCount: number
+  discoveryTotalCount: number
   draftCount: number
   error: string | null
-  firstName: string
-  initials: string
+  isDiscoveryLoading: boolean
   locationLabel: string
+  localitySummary: string
   mode?: PaletteMode
-  myGigs: OwnedGig[]
+  onChangeCategory: (category: GigCategory | 'all') => void
   onActivateCreate: () => void
+  onOpenDiscoveryGig: (gigId: string) => void
   onNextDiscoveryPage: () => void
   onOpenGigs: () => void
   onOpenProfile: () => void
   onPreviousDiscoveryPage: () => void
   profile: UserProfile | null
-  profileStrengthLabel: string
   publishedCount: number
   recentGigs: OwnedGig[]
+  selectedCategory: GigCategory | 'all'
   searchQuery: string
   totalApplicants: number
   totalBudget: number
 }
 
 type CategoryHighlight = {
-  category: GigCategory
+  category: GigCategory | 'all'
   label: string
 }
 
 const categoryHighlights: CategoryHighlight[] = [
+  {
+    category: 'all',
+    label: 'All'
+  },
   {
     category: 'errands_personal_assistance',
     label: 'Errands'
@@ -51,42 +60,76 @@ const categoryHighlights: CategoryHighlight[] = [
     label: 'Cleaning'
   },
   {
+    category: 'moving_help',
+    label: 'Moving'
+  },
+  {
+    category: 'construction_helper',
+    label: 'Construction'
+  },
+  {
+    category: 'tutoring_academic_support',
+    label: 'Tutoring'
+  },
+  {
     category: 'graphic_design_creative',
     label: 'Creative'
+  },
+  {
+    category: 'photo_video_support',
+    label: 'Photo'
+  },
+  {
+    category: 'virtual_assistance_admin',
+    label: 'Admin'
+  },
+  {
+    category: 'event_staffing',
+    label: 'Events'
   }
 ]
 
 export function FindGigHomeView({
+  discoveryError,
   discoveryGigs,
+  discoveryHasMore,
   discoveryPage,
   discoveryPageCount,
+  discoveryTotalCount,
   draftCount,
   error,
-  firstName,
-  initials,
+  isDiscoveryLoading,
   locationLabel,
+  localitySummary,
   mode,
-  myGigs,
+  onChangeCategory,
   onActivateCreate,
+  onOpenDiscoveryGig,
   onNextDiscoveryPage,
   onOpenGigs,
   onOpenProfile,
   onPreviousDiscoveryPage,
   profile,
-  profileStrengthLabel,
   publishedCount,
   recentGigs,
+  selectedCategory,
   searchQuery,
   totalApplicants,
   totalBudget
 }: FindGigHomeViewProps) {
   const colors = palette[mode ?? 'light']
+  const initials = profile?.displayName
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() ?? 'RK'
 
   return (
     <>
       <View style={styles.sectionHeader}>
         <Text selectable style={[styles.sectionTitle, { color: colors.text }]}>Job category</Text>
-        <Text selectable style={[styles.sectionMeta, { color: colors.textMuted }]}>Quick browse</Text>
+        <Text selectable style={[styles.sectionMeta, { color: colors.textMuted }]}>Marketplace filters</Text>
       </View>
 
       <View style={styles.categoryRow}>
@@ -94,13 +137,32 @@ export function FindGigHomeView({
           <Pressable
             key={item.category}
             accessibilityRole="button"
-            onPress={onOpenGigs}
-            style={({ pressed }) => [styles.categoryCard, pressed ? styles.pressed : null]}
+            onPress={() => { onChangeCategory(item.category) }}
+            style={({ pressed }) => [
+              styles.categoryCard,
+              {
+                backgroundColor: selectedCategory === item.category ? '#185f37' : '#ffffff',
+                borderColor: selectedCategory === item.category ? '#185f37' : '#e6e8df'
+              },
+              pressed ? styles.pressed : null
+            ]}
           >
             <View style={styles.categoryIconBubble}>
-              <Ionicons color="#11131a" name={categoryIconName(item.category)} size={18} />
+              <Ionicons
+                color={selectedCategory === item.category ? '#ffffff' : '#11131a'}
+                name={categoryIconName(item.category)}
+                size={18}
+              />
             </View>
-            <Text selectable style={styles.categoryLabel}>{item.label}</Text>
+            <Text
+              selectable
+              style={[
+                styles.categoryLabel,
+                { color: selectedCategory === item.category ? '#ffffff' : '#11131a' }
+              ]}
+            >
+              {item.label}
+            </Text>
           </Pressable>
         ))}
       </View>
@@ -108,26 +170,43 @@ export function FindGigHomeView({
       <View style={styles.sectionHeader}>
         <Text selectable style={[styles.sectionTitle, { color: colors.text }]}>Discovery</Text>
         <Text selectable style={[styles.sectionMeta, { color: colors.textMuted }]}>
-          {filteredResultsLabel(discoveryGigs.length, searchQuery)}
+          {filteredResultsLabel(discoveryTotalCount, searchQuery, locationLabel)}
         </Text>
       </View>
 
-      {discoveryGigs.length === 0
+      <View
+        style={[
+          styles.localityBanner,
+          {
+            borderColor: colors.border,
+            backgroundColor: colors.surface
+          }
+        ]}
+      >
+        <Ionicons color={colors.textMuted} name="locate-outline" size={16} />
+        <Text selectable style={[styles.localityBannerText, { color: colors.textMuted }]}>
+          {localitySummary}
+        </Text>
+      </View>
+
+      {isDiscoveryLoading && discoveryGigs.length === 0
+        ? (
+          <View style={styles.emptyStateCard}>
+            <Text selectable style={[styles.emptyStateTitle, { color: colors.text }]}>Finding gigs</Text>
+            <Text selectable style={[styles.emptyStateBody, { color: colors.textMuted }]}>
+              Loading published jobs for your marketplace feed.
+            </Text>
+          </View>
+          )
+        : discoveryGigs.length === 0
         ? (
           <View style={styles.emptyStateCard}>
             <Text selectable style={[styles.emptyStateTitle, { color: colors.text }]}>No jobs found</Text>
             <Text selectable style={[styles.emptyStateBody, { color: colors.textMuted }]}>
               {searchQuery.trim() === ''
-                ? 'Publish a job to start populating Discovery on this screen.'
+                ? `No published gigs matched ${locationLabel.toLowerCase()}.`
                 : 'Try a different keyword or clear the search bar to see more jobs.'}
             </Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={onActivateCreate}
-              style={({ pressed }) => [styles.emptyStateButton, pressed ? styles.pressed : null]}
-            >
-              <Text selectable style={styles.emptyStateButtonText}>Create a gig</Text>
-            </Pressable>
           </View>
           )
         : (
@@ -136,7 +215,7 @@ export function FindGigHomeView({
               <Pressable
                 key={gig.id}
                 accessibilityRole="button"
-                onPress={onOpenGigs}
+                onPress={() => { onOpenDiscoveryGig(gig.id) }}
                 style={({ pressed }) => [styles.discoveryCard, pressed ? styles.pressed : null]}
               >
                 <View style={styles.discoveryCardTopRow}>
@@ -144,6 +223,9 @@ export function FindGigHomeView({
                     <Text selectable style={[styles.discoveryCardTitle, { color: colors.text }]}>{gig.title}</Text>
                     <Text selectable style={[styles.discoveryCardMeta, { color: colors.textMuted }]}>
                       {formatGigCategory(gig.category)} · {gig.location.city}
+                    </Text>
+                    <Text selectable style={[styles.discoveryTrustLine, { color: colors.textMuted }]}>
+                      {gig.poster.displayName} · {gig.poster.reviewCount} reviews · {gig.poster.responseRate}% response
                     </Text>
                   </View>
                   <View style={styles.discoveryArrowWrap}>
@@ -156,8 +238,17 @@ export function FindGigHomeView({
                 </Text>
 
                 <View style={styles.discoveryFooter}>
-                  <View style={styles.feedPillPrimary}>
-                    <Text selectable style={styles.feedPillPrimaryText}>{gig.applicationCount} applicants</Text>
+                  <View style={styles.discoveryPillRow}>
+                    <View style={styles.feedPillPrimary}>
+                      <Text selectable style={styles.feedPillPrimaryText}>
+                        {gig.distanceKm == null ? gig.location.barangay : `${gig.distanceKm.toFixed(1)} km away`}
+                      </Text>
+                    </View>
+                    <View style={styles.feedPillSecondary}>
+                      <Text selectable style={styles.feedPillSecondaryText}>
+                        {gig.poster.gigsPosted} posted · {gig.poster.hiresCompleted} completed
+                      </Text>
+                    </View>
                   </View>
                   <Text selectable style={[styles.discoveryBudget, { color: colors.text }]}>
                     {formatPhpCurrency(gig.priceAmount)}
@@ -166,37 +257,57 @@ export function FindGigHomeView({
               </Pressable>
             ))}
 
-            <View style={styles.discoveryPagination}>
-              <Pressable
-                accessibilityRole="button"
-                disabled={discoveryPage === 0}
-                onPress={onPreviousDiscoveryPage}
-                style={({ pressed }) => [
-                  styles.paginationButton,
-                  discoveryPage === 0 ? styles.paginationButtonDisabled : null,
-                  pressed ? styles.pressed : null
-                ]}
-              >
-                <Text selectable style={styles.paginationButtonText}>Previous</Text>
-              </Pressable>
-              <Text selectable style={[styles.paginationText, { color: colors.textMuted }]}>
-                Page {discoveryPage + 1} of {discoveryPageCount}
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                disabled={discoveryPage >= discoveryPageCount - 1}
-                onPress={onNextDiscoveryPage}
-                style={({ pressed }) => [
-                  styles.paginationButton,
-                  discoveryPage >= discoveryPageCount - 1 ? styles.paginationButtonDisabled : null,
-                  pressed ? styles.pressed : null
-                ]}
-              >
-                <Text selectable style={styles.paginationButtonText}>Next</Text>
-              </Pressable>
-            </View>
+            {discoveryTotalCount > 0
+              ? (
+                <View style={styles.discoveryPagination}>
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={discoveryPage === 0}
+                    onPress={onPreviousDiscoveryPage}
+                    style={({ pressed }) => [
+                      styles.paginationButton,
+                      discoveryPage === 0 ? styles.paginationButtonDisabled : null,
+                      pressed ? styles.pressed : null
+                    ]}
+                  >
+                    <Text selectable style={styles.paginationButtonText}>Previous</Text>
+                  </Pressable>
+                  <Text selectable style={[styles.paginationText, { color: colors.textMuted }]}>
+                    Page {discoveryPage + 1} of {discoveryPageCount}
+                  </Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={!discoveryHasMore}
+                    onPress={onNextDiscoveryPage}
+                    style={({ pressed }) => [
+                      styles.paginationButton,
+                      !discoveryHasMore ? styles.paginationButtonDisabled : null,
+                      pressed ? styles.pressed : null
+                    ]}
+                  >
+                    <Text selectable style={styles.paginationButtonText}>Next</Text>
+                  </Pressable>
+                </View>
+                )
+              : null}
           </View>
           )}
+
+      {discoveryError == null
+        ? null
+        : (
+          <View style={styles.errorCard}>
+            <Ionicons color="#7c2d12" name="alert-circle" size={18} />
+            <Text selectable style={styles.errorText}>{discoveryError}</Text>
+          </View>
+          )}
+
+      <View style={styles.sectionHeader}>
+        <Text selectable style={[styles.sectionTitle, { color: colors.text }]}>Poster tools</Text>
+        <Pressable accessibilityRole="button" onPress={onOpenProfile}>
+          <Text selectable style={[styles.inlineAction, { color: colors.textMuted }]}>Open profile</Text>
+        </Pressable>
+      </View>
 
       <View style={styles.metricsStrip}>
         {[
@@ -211,29 +322,29 @@ export function FindGigHomeView({
         ))}
       </View>
 
-      <View style={styles.profileCard}>
+      <View style={styles.profileCardCompact}>
         <View style={styles.profileTopRow}>
           <View style={styles.profileAvatar}>
             <Text selectable style={styles.profileAvatarText}>{initials}</Text>
           </View>
           <View style={{ flex: 1, gap: 4 }}>
             <Text selectable style={[styles.profileTitle, { color: colors.text }]}>
-              {profile?.displayName ?? `${firstName} hiring profile`}
+              {profile?.displayName ?? 'Set up your profile'}
             </Text>
             <Text selectable style={[styles.profileSubtitle, { color: colors.textMuted }]}>
-              {profile?.bio?.trim() !== '' ? profile?.bio : 'Tighten your profile so applicants know what kind of work you post.'}
+              {profile?.bio?.trim() !== '' ? profile?.bio : 'Add a tighter bio and location so workers trust your gigs faster.'}
             </Text>
           </View>
         </View>
 
         <View style={styles.profileStatsRow}>
           <View style={styles.profileStatItem}>
-            <Text selectable style={[styles.profileStatValue, { color: colors.text }]}>{profile?.stats.jobsCompleted ?? 0}</Text>
-            <Text selectable style={[styles.profileStatLabel, { color: colors.textMuted }]}>Completed</Text>
-          </View>
-          <View style={styles.profileStatItem}>
             <Text selectable style={[styles.profileStatValue, { color: colors.text }]}>{profile?.stats.reviewCount ?? 0}</Text>
             <Text selectable style={[styles.profileStatLabel, { color: colors.textMuted }]}>Reviews</Text>
+          </View>
+          <View style={styles.profileStatItem}>
+            <Text selectable style={[styles.profileStatValue, { color: colors.text }]}>{profile?.stats.responseRate ?? 0}%</Text>
+            <Text selectable style={[styles.profileStatLabel, { color: colors.textMuted }]}>Response</Text>
           </View>
           <View style={styles.profileStatItem}>
             <Text selectable style={[styles.profileStatValue, { color: colors.text }]}>
@@ -241,20 +352,6 @@ export function FindGigHomeView({
             </Text>
             <Text selectable style={[styles.profileStatLabel, { color: colors.textMuted }]}>Budget</Text>
           </View>
-        </View>
-
-        <View style={styles.profileFooterRow}>
-          <View style={styles.profileStrengthPill}>
-            <Text selectable style={styles.profileStrengthText}>{profileStrengthLabel}</Text>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            onPress={onOpenProfile}
-            style={({ pressed }) => [styles.profileAction, pressed ? styles.pressed : null]}
-          >
-            <Text selectable style={styles.profileActionText}>Open profile</Text>
-            <Ionicons color="#ffffff" name="arrow-forward" size={16} />
-          </Pressable>
         </View>
       </View>
 
@@ -268,7 +365,7 @@ export function FindGigHomeView({
           )}
 
       <View style={styles.sectionHeader}>
-        <Text selectable style={[styles.sectionTitle, { color: colors.text }]}>Live activity</Text>
+        <Text selectable style={[styles.sectionTitle, { color: colors.text }]}>Recent posts</Text>
         <Pressable accessibilityRole="button" onPress={onOpenGigs}>
           <Text selectable style={[styles.inlineAction, { color: colors.textMuted }]}>See all</Text>
         </Pressable>
@@ -293,11 +390,11 @@ export function FindGigHomeView({
             key={gig.id}
             accessibilityRole="button"
             onPress={onOpenGigs}
-            style={({ pressed }) => [styles.feedCard, pressed ? styles.pressed : null]}
+            style={({ pressed }) => [styles.feedCardCompact, pressed ? styles.pressed : null]}
           >
             <View style={styles.feedCardTopRow}>
               <View style={{ flex: 1, gap: 6 }}>
-                <Text selectable style={[styles.feedCardTitle, { color: colors.text }]}>{gig.title}</Text>
+                <Text selectable style={[styles.feedCardTitleCompact, { color: colors.text }]}>{gig.title}</Text>
                 <Text selectable style={[styles.feedCardMeta, { color: colors.textMuted }]}>
                   {formatGigCategory(gig.category)} · {gig.location.city}
                 </Text>
@@ -307,21 +404,12 @@ export function FindGigHomeView({
               </View>
             </View>
 
-            <View style={styles.feedPillRow}>
-              <View style={styles.feedPillPrimary}>
-                <Text selectable style={styles.feedPillPrimaryText}>{gig.status === 'published' ? 'User invited' : 'Draft ready'}</Text>
-              </View>
-              <View style={styles.feedPillSecondary}>
-                <Text selectable style={styles.feedPillSecondaryText}>{gig.applicationCount} applicants</Text>
-              </View>
-            </View>
-
             <View style={styles.feedCardFooter}>
               <View style={{ gap: 4 }}>
                 <Text selectable style={[styles.feedCardPrice, { color: colors.text }]}>{formatPhpCurrency(gig.priceAmount)}</Text>
                 <Text selectable style={[styles.feedCardTime, { color: colors.textMuted }]}>{formatGigTimestamp(gig.updatedAt)}</Text>
               </View>
-              <Text selectable style={[styles.feedCardSchedule, { color: colors.textMuted }]}>{gig.scheduleSummary}</Text>
+              <Text selectable style={[styles.feedCardSchedule, { color: colors.textMuted }]}>{gig.applicationCount} applicants</Text>
             </View>
           </Pressable>
           ))}
@@ -329,15 +417,19 @@ export function FindGigHomeView({
   )
 }
 
-function filteredResultsLabel(discoveryCount: number, searchQuery: string): string {
+function filteredResultsLabel(discoveryCount: number, searchQuery: string, locationLabel: string): string {
   if (searchQuery.trim() !== '') {
     return `${discoveryCount} results`
   }
 
-  return '5 per page'
+  return locationLabel === 'the marketplace' ? 'Marketplace-wide' : `Near ${locationLabel}`
 }
 
-function categoryIconName(category: GigCategory): keyof typeof Ionicons.glyphMap {
+function categoryIconName(category: GigCategory | 'all'): keyof typeof Ionicons.glyphMap {
+  if (category === 'all') {
+    return 'apps-outline'
+  }
+
   switch (category) {
     case 'errands_personal_assistance':
       return 'walk-outline'
@@ -382,11 +474,12 @@ const styles = StyleSheet.create({
   },
   categoryRow: {
     flexDirection: 'row',
-    gap: 12
+    gap: 12,
+    flexWrap: 'wrap'
   },
   categoryCard: {
-    flex: 1,
-    minHeight: 92,
+    minHeight: 86,
+    minWidth: '30%',
     borderRadius: 20,
     padding: 14,
     alignItems: 'center',
@@ -404,8 +497,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center'
   },
+  localityBanner: {
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10
+  },
+  localityBannerText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '600'
+  },
   categoryLabel: {
-    color: '#11131a',
     fontSize: 15,
     fontWeight: '800',
     letterSpacing: -0.2,
@@ -437,6 +544,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18
   },
+  discoveryTrustLine: {
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '600'
+  },
   discoveryDescription: {
     fontSize: 14,
     lineHeight: 20
@@ -451,9 +563,16 @@ const styles = StyleSheet.create({
   },
   discoveryFooter: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
     gap: 12
+  },
+  discoveryPillRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap'
   },
   discoveryBudget: {
     fontSize: 17,
@@ -552,6 +671,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12
   },
+  profileCardCompact: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 16,
+    gap: 16,
+    borderWidth: 1,
+    borderColor: '#e6e8df'
+  },
   profileStatItem: {
     flex: 1,
     gap: 4
@@ -563,37 +690,6 @@ const styles = StyleSheet.create({
   profileStatLabel: {
     fontSize: 12,
     fontWeight: '600'
-  },
-  profileFooterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12
-  },
-  profileStrengthPill: {
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#f4f4f1'
-  },
-  profileStrengthText: {
-    color: '#505866',
-    fontSize: 12,
-    fontWeight: '700'
-  },
-  profileAction: {
-    minHeight: 42,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    backgroundColor: '#185f37',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8
-  },
-  profileActionText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '800'
   },
   errorCard: {
     borderRadius: 18,
@@ -643,24 +739,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800'
   },
-  feedCard: {
-    borderRadius: 24,
+  feedCardCompact: {
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: '#e6e8df',
     backgroundColor: '#ffffff',
-    padding: 18,
-    gap: 16
+    padding: 16,
+    gap: 12
   },
   feedCardTopRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12
   },
-  feedCardTitle: {
-    fontSize: 20,
+  feedCardTitleCompact: {
+    fontSize: 17,
     fontWeight: '800',
-    lineHeight: 25,
-    letterSpacing: -0.5
+    lineHeight: 22,
+    letterSpacing: -0.3
   },
   feedCardMeta: {
     fontSize: 14,
@@ -673,12 +769,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f4f4f1',
     alignItems: 'center',
     justifyContent: 'center'
-  },
-  feedPillRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flexWrap: 'wrap'
   },
   feedPillPrimary: {
     borderRadius: 999,

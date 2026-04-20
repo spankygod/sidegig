@@ -13,6 +13,13 @@ import { supabase } from '@/lib/supabase-client'
 
 WebBrowser.maybeCompleteAuthSession()
 
+type RefreshedAppData = {
+  session: Session | null
+  authUser: BackendAuthUser | null
+  profile: UserProfile | null
+  myGigs: OwnedGig[]
+}
+
 type SessionContextValue = {
   session: Session | null
   authUser: BackendAuthUser | null
@@ -24,7 +31,7 @@ type SessionContextValue = {
   error: string | null
   signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
-  refreshAppData: () => Promise<void>
+  refreshAppData: () => Promise<RefreshedAppData>
   submitGig: (payload: CreateGigPayload) => Promise<OwnedGig>
   clearError: () => void
 }
@@ -79,7 +86,14 @@ export function SessionProvider({ children }: PropsWithChildren) {
   const [isSigningIn, setIsSigningIn] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
 
-  const hydrateSession = React.useCallback(async (nextSession: Session | null) => {
+  const buildCurrentSnapshot = React.useCallback((): RefreshedAppData => ({
+    session,
+    authUser,
+    profile,
+    myGigs
+  }), [authUser, myGigs, profile, session])
+
+  const hydrateSession = React.useCallback(async (nextSession: Session | null): Promise<RefreshedAppData> => {
     setSession(nextSession)
 
     if (nextSession == null) {
@@ -89,7 +103,12 @@ export function SessionProvider({ children }: PropsWithChildren) {
       setError(null)
       setIsRefreshing(false)
       setIsReady(true)
-      return
+      return {
+        session: null,
+        authUser: null,
+        profile: null,
+        myGigs: []
+      }
     }
 
     setIsRefreshing(true)
@@ -105,6 +124,13 @@ export function SessionProvider({ children }: PropsWithChildren) {
       setProfile(resolvedProfile)
       setMyGigs(resolvedGigs)
       setError(null)
+
+      return {
+        session: nextSession,
+        authUser: resolvedAuthUser,
+        profile: resolvedProfile,
+        myGigs: resolvedGigs
+      }
     } catch (nextError) {
       setAuthUser(null)
       setProfile(null)
@@ -113,6 +139,20 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
       if (nextError instanceof BackendError && nextError.status === 401) {
         await supabase.auth.signOut()
+
+        return {
+          session: null,
+          authUser: null,
+          profile: null,
+          myGigs: []
+        }
+      }
+
+      return {
+        session: nextSession,
+        authUser: null,
+        profile: null,
+        myGigs: []
       }
     } finally {
       setIsRefreshing(false)
@@ -264,11 +304,13 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
     if (sessionError != null) {
       setError(toErrorMessage(sessionError))
-      return
+      return buildCurrentSnapshot()
     }
 
-    await hydrateSession(data.session)
-  }, [hydrateSession])
+    const refreshedAppData = await hydrateSession(data.session)
+
+    return refreshedAppData ?? buildCurrentSnapshot()
+  }, [buildCurrentSnapshot, hydrateSession])
 
   const submitGig = React.useCallback(async (payload: CreateGigPayload) => {
     if (session == null) {

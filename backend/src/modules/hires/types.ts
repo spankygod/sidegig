@@ -48,12 +48,6 @@ export interface HireWorkDetail {
       longitude: number
       exactPinVisible: true
     }
-    construction: {
-      supervisorPresent: boolean
-      ppeProvided: boolean
-      helperOnlyConfirmation: boolean
-      physicalLoad: string | null
-    } | null
     createdAt: string
     updatedAt: string
   }
@@ -75,6 +69,9 @@ export interface HireWorkDetail {
       reviewCount: number
       jobsCompleted: number
       responseRate: number
+      gigsPosted: number
+      hiresFunded: number
+      hiresCompleted: number
     }
   }
   worker: {
@@ -87,6 +84,9 @@ export interface HireWorkDetail {
       reviewCount: number
       jobsCompleted: number
       responseRate: number
+      gigsPosted: number
+      hiresFunded: number
+      hiresCompleted: number
     }
   }
 }
