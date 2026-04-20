@@ -42,51 +42,41 @@ export function FeedHomeHeader({
         </View>
 
         <Text selectable style={[styles.heroTitle, { color: colors.text }]}>
-          {activeTab === 'find' ? 'Find the right local help fast.' : 'Create a gig workers can act on.'}
+          Find the right local help fast.
         </Text>
 
-        {activeTab === 'find'
-          ? (
-            <View style={styles.searchRow}>
-              <View style={styles.searchField}>
-                <Ionicons color="#6d7484" name="search-outline" size={18} />
-                <TextInput
-                  onChangeText={onChangeSearchQuery}
-                  placeholder="Search errands, cleaning, moving..."
-                  placeholderTextColor="#6d7484"
-                  selectionColor={colors.accent}
-                  style={styles.searchInput}
-                  value={searchQuery}
-                />
-                {searchQuery.trim() === ''
-                  ? null
-                  : (
-                    <Pressable
-                      accessibilityLabel="Clear search"
-                      accessibilityRole="button"
-                      onPress={() => { onChangeSearchQuery('') }}
-                      style={({ pressed }) => [styles.clearSearchButton, pressed ? styles.pressed : null]}
-                    >
-                      <Ionicons color="#6d7484" name="close" size={16} />
-                    </Pressable>
-                    )}
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => { onSelectTab('create') }}
-                style={({ pressed }) => [styles.searchAction, pressed ? styles.pressed : null]}
-              >
-                <Ionicons color="#ffffff" name="add" size={18} />
-              </Pressable>
-            </View>
-            )
-          : (
-            <View style={styles.createModeHint}>
-              <Text selectable style={styles.createModeHintText}>
-                Use the form below to publish or save a draft without leaving Home.
-              </Text>
-            </View>
-            )}
+        <View style={styles.searchRow}>
+          <View style={styles.searchField}>
+            <Ionicons color="#6d7484" name="search-outline" size={18} />
+            <TextInput
+              onChangeText={onChangeSearchQuery}
+              placeholder="Search errands, cleaning, moving..."
+              placeholderTextColor="#6d7484"
+              selectionColor={colors.accent}
+              style={styles.searchInput}
+              value={searchQuery}
+            />
+            {searchQuery.trim() === ''
+              ? null
+              : (
+                <Pressable
+                  accessibilityLabel="Clear search"
+                  accessibilityRole="button"
+                  onPress={() => { onChangeSearchQuery('') }}
+                  style={({ pressed }) => [styles.clearSearchButton, pressed ? styles.pressed : null]}
+                >
+                  <Ionicons color="#6d7484" name="close" size={16} />
+                </Pressable>
+                )}
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => { onSelectTab('create') }}
+            style={({ pressed }) => [styles.searchAction, pressed ? styles.pressed : null]}
+          >
+            <Ionicons color="#ffffff" name="add" size={18} />
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.segmentWrap}>
@@ -192,21 +182,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#185f37',
     alignItems: 'center',
     justifyContent: 'center'
-  },
-  createModeHint: {
-    minHeight: 50,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: '#dfe3db',
-    backgroundColor: '#f8faf8',
-    justifyContent: 'center'
-  },
-  createModeHintText: {
-    color: '#4d5b55',
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '500'
   },
   segmentWrap: {
     flexDirection: 'row',
