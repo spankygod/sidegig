@@ -8,28 +8,11 @@ import { PostJobComposer } from '@/components/post-job-composer'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { fetchPublicGigs } from '@/lib/backend-client'
 import { palette } from '@/constants/palette'
-import { type GigCategory, type PublicGig, type UserProfile } from '@/lib/raket-types'
+import { type PublicGig, type UserProfile } from '@/lib/raket-types'
 import { useSession } from '@/providers/session-provider'
 import { feedScreenStyles as styles } from '@/styles/screens/feed-screen'
 
 const discoveryPageSize = 6
-
-function buildLocalitySummary(input: {
-  city: string | null | undefined
-  hasCoordinates: boolean
-  serviceRadiusKm: number | null | undefined
-}): string {
-  if (input.hasCoordinates) {
-    const locationName = input.city?.trim() !== '' && input.city != null ? input.city : 'your current area'
-    return `Showing gigs within ${input.serviceRadiusKm ?? 0} km of ${locationName}.`
-  }
-
-  if (input.city?.trim() !== '' && input.city != null) {
-    return `Showing ${input.city} gigs because precise location is incomplete.`
-  }
-
-  return 'Showing marketplace-wide gigs until you set your city and exact location.'
-}
 
 export default function FeedScreen() {
   const router = useRouter()
@@ -41,7 +24,6 @@ export default function FeedScreen() {
   const [activeTab, setActiveTab] = React.useState<FeedHomeTab>('find')
   const [searchQuery, setSearchQuery] = React.useState('')
   const deferredSearchQuery = React.useDeferredValue(searchQuery)
-  const [selectedCategory, setSelectedCategory] = React.useState<GigCategory | 'all'>('all')
   const [discoveryPage, setDiscoveryPage] = React.useState(0)
   const [marketplaceGigs, setMarketplaceGigs] = React.useState<PublicGig[]>([])
   const [marketplaceTotalCount, setMarketplaceTotalCount] = React.useState(0)
@@ -55,12 +37,6 @@ export default function FeedScreen() {
   const totalApplicants = myGigs.reduce((total, gig) => total + gig.applicationCount, 0)
   const totalBudget = myGigs.reduce((total, gig) => total + gig.priceAmount, 0)
   const recentGigs = (publishedGigs.length > 0 ? publishedGigs : myGigs).slice(0, 3)
-  const locationLabel = profile?.city ?? 'the marketplace'
-  const localitySummary = buildLocalitySummary({
-    city: profile?.city,
-    hasCoordinates: profile?.latitude != null && profile.longitude != null,
-    serviceRadiusKm: profile?.serviceRadiusKm
-  })
   const discoveryPageCount = Math.max(1, Math.ceil(marketplaceTotalCount / discoveryPageSize))
   const boundedDiscoveryPage = Math.min(discoveryPage, discoveryPageCount - 1)
   const discoveryOffset = boundedDiscoveryPage * discoveryPageSize
@@ -89,7 +65,6 @@ export default function FeedScreen() {
 
     try {
       const response = await fetchPublicGigs(accessToken, {
-        category: selectedCategory === 'all' ? undefined : selectedCategory,
         ...(profileSnapshot?.latitude != null && profileSnapshot.longitude != null
           ? {}
           : profileSnapshot?.city != null
@@ -115,7 +90,6 @@ export default function FeedScreen() {
     profile?.city,
     profile?.latitude,
     profile?.longitude,
-    selectedCategory,
     session
   ])
 
@@ -137,7 +111,7 @@ export default function FeedScreen() {
 
   React.useEffect(() => {
     setDiscoveryPage(0)
-  }, [deferredSearchQuery, selectedCategory])
+  }, [deferredSearchQuery])
 
   React.useEffect(() => {
     void loadMarketplaceGigs()
@@ -186,10 +160,7 @@ export default function FeedScreen() {
             draftCount={draftCount}
             error={error}
             isDiscoveryLoading={!hasLoadedMarketplace || isMarketplaceLoading}
-            locationLabel={locationLabel}
-            localitySummary={localitySummary}
             mode={mode}
-            onChangeCategory={(category) => { setSelectedCategory(category) }}
             onActivateCreate={() => { setActiveTab('create') }}
             onOpenDiscoveryGig={(gigId) => {
               router.push({
@@ -205,8 +176,6 @@ export default function FeedScreen() {
             discoveryGigs={marketplaceGigs}
             discoveryPage={boundedDiscoveryPage}
             discoveryPageCount={discoveryPageCount}
-            discoveryTotalCount={marketplaceTotalCount}
-            selectedCategory={selectedCategory}
             searchQuery={searchQuery}
             totalApplicants={totalApplicants}
             totalBudget={totalBudget}

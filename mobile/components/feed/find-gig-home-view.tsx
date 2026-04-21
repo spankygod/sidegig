@@ -7,7 +7,6 @@ import {
   formatGigCategory,
   formatGigTimestamp,
   formatPhpCurrency,
-  type GigCategory,
   type OwnedGig,
   type PublicGig,
   type UserProfile
@@ -19,14 +18,10 @@ type FindGigHomeViewProps = {
   discoveryGigs: PublicGig[]
   discoveryPage: number
   discoveryPageCount: number
-  discoveryTotalCount: number
   draftCount: number
   error: string | null
   isDiscoveryLoading: boolean
-  locationLabel: string
-  localitySummary: string
   mode?: PaletteMode
-  onChangeCategory: (category: GigCategory | 'all') => void
   onActivateCreate: () => void
   onOpenDiscoveryGig: (gigId: string) => void
   onOpenGigs: () => void
@@ -34,73 +29,20 @@ type FindGigHomeViewProps = {
   profile: UserProfile | null
   publishedCount: number
   recentGigs: OwnedGig[]
-  selectedCategory: GigCategory | 'all'
   searchQuery: string
   totalApplicants: number
   totalBudget: number
 }
-
-type CategoryHighlight = {
-  category: GigCategory | 'all'
-  label: string
-}
-
-const categoryHighlights: CategoryHighlight[] = [
-  {
-    category: 'all',
-    label: 'All'
-  },
-  {
-    category: 'errands_personal_assistance',
-    label: 'Errands'
-  },
-  {
-    category: 'cleaning_home_help',
-    label: 'Cleaning'
-  },
-  {
-    category: 'moving_help',
-    label: 'Moving'
-  },
-  {
-    category: 'construction_helper',
-    label: 'Construction'
-  },
-  {
-    category: 'tutoring_academic_support',
-    label: 'Tutoring'
-  },
-  {
-    category: 'graphic_design_creative',
-    label: 'Creative'
-  },
-  {
-    category: 'photo_video_support',
-    label: 'Photo'
-  },
-  {
-    category: 'virtual_assistance_admin',
-    label: 'Admin'
-  },
-  {
-    category: 'event_staffing',
-    label: 'Events'
-  }
-]
 
 export function FindGigHomeView({
   discoveryError,
   discoveryGigs,
   discoveryPage,
   discoveryPageCount,
-  discoveryTotalCount,
   draftCount,
   error,
   isDiscoveryLoading,
-  locationLabel,
-  localitySummary,
   mode,
-  onChangeCategory,
   onActivateCreate,
   onOpenDiscoveryGig,
   onOpenGigs,
@@ -108,7 +50,6 @@ export function FindGigHomeView({
   profile,
   publishedCount,
   recentGigs,
-  selectedCategory,
   searchQuery,
   totalApplicants,
   totalBudget
@@ -129,64 +70,7 @@ export function FindGigHomeView({
   return (
     <>
       <View style={styles.sectionHeader}>
-        <Text selectable style={[styles.sectionTitle, { color: colors.text }]}>Job categories</Text>
-        <Text selectable style={[styles.sectionMeta, { color: colors.textMuted }]}>Single-tap filters</Text>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={styles.categoryRow}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-      >
-        {categoryHighlights.map((item) => (
-          <Pressable
-            key={item.category}
-            accessibilityRole="button"
-            onPress={() => { onChangeCategory(item.category) }}
-            style={({ pressed }) => [
-              styles.categoryChip,
-              {
-                backgroundColor: selectedCategory === item.category ? colors.accent : colors.surface,
-                borderColor: selectedCategory === item.category ? colors.accent : colors.border
-              },
-              pressed ? styles.pressed : null
-            ]}
-          >
-            <Text
-              selectable
-              style={[
-                styles.categoryLabel,
-                { color: selectedCategory === item.category ? '#ffffff' : colors.text }
-              ]}
-            >
-              {item.label}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionTitleGroup}>
-          <Text selectable style={[styles.sectionTitle, { color: colors.text }]}>Jobs for you</Text>
-          <Text selectable style={[styles.sectionMeta, { color: colors.textMuted }]}>
-            {filteredResultsLabel(discoveryTotalCount, searchQuery, locationLabel)}
-          </Text>
-        </View>
-      </View>
-
-      <View
-        style={[
-          styles.localityBanner,
-          {
-            borderColor: colors.border,
-            backgroundColor: colors.surface
-          }
-        ]}
-      >
-        <Ionicons color={colors.textMuted} name="locate-outline" size={16} />
-        <Text selectable style={[styles.localityBannerText, { color: colors.textMuted }]}>
-          {localitySummary}
-        </Text>
+        <Text selectable style={[styles.sectionTitle, { color: colors.text }]}>Jobs for you</Text>
       </View>
 
       {isDiscoveryLoading && discoveryGigs.length === 0
@@ -204,7 +88,7 @@ export function FindGigHomeView({
               <Text selectable style={[styles.emptyStateTitle, { color: colors.text }]}>No jobs found</Text>
               <Text selectable style={[styles.emptyStateBody, { color: colors.textMuted }]}>
                 {searchQuery.trim() === ''
-                  ? `No published gigs matched ${locationLabel.toLowerCase()}.`
+                  ? 'No published gigs are available right now.'
                   : 'Try a different keyword or clear the search bar to see more jobs.'}
               </Text>
             </View>
@@ -430,14 +314,6 @@ export function FindGigHomeView({
         ))}
     </>
   )
-}
-
-function filteredResultsLabel(discoveryCount: number, searchQuery: string, locationLabel: string): string {
-  if (searchQuery.trim() !== '') {
-    return `${discoveryCount} results`
-  }
-
-  return locationLabel === 'the marketplace' ? 'Marketplace-wide' : `Near ${locationLabel}`
 }
 
 function getCarouselTone(index: number) {
