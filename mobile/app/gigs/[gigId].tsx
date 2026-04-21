@@ -4,12 +4,18 @@ import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import {
   ActivityIndicator,
   Pressable,
-  RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View
 } from 'react-native'
+import { Gesture, GestureDetector } from 'react-native-gesture-handler'
+import Animated, {
+  runOnJS,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring
+} from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AppSurface } from '@/components/app-surface'
 import { PrimaryButton } from '@/components/primary-button'
@@ -92,30 +98,79 @@ export default function PublicGigDetailScreen() {
   const [intro, setIntro] = React.useState('')
   const [availability, setAvailability] = React.useState('')
   const [isLoading, setIsLoading] = React.useState(true)
-  const [isRefreshing, setIsRefreshing] = React.useState(false)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [loadError, setLoadError] = React.useState<string | null>(null)
   const [applyError, setApplyError] = React.useState<string | null>(null)
   const [applicationFeedback, setApplicationFeedback] = React.useState<string | null>(null)
   const [existingApplicationStatus, setExistingApplicationStatus] = React.useState<GigApplicationSummary['status'] | null>(null)
+  const [focusedField, setFocusedField] = React.useState<'intro' | 'availability' | null>(null)
 
   const isWorkerLocationReady = profile?.latitude != null && profile.longitude != null
   const topInset = Math.max(insets.top + 8, 20)
   const footerBottomPadding = Math.max(insets.bottom + 12, 20)
+  const dragTranslateY = useSharedValue(0)
+  const gestureStartedAtTop = useSharedValue(false)
+  const scrollOffsetY = useSharedValue(0)
+
+  const closeScreen = React.useCallback(() => {
+    router.back()
+  }, [router])
+
+  const animatedScreenStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: dragTranslateY.value }]
+  }))
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollOffsetY.value = event.contentOffset.y
+    }
+  })
+
+  const nativeScrollGesture = React.useMemo(() => Gesture.Native(), [])
+
+  const dismissGesture = React.useMemo(() => (
+    Gesture.Pan()
+      .enabled(focusedField == null)
+      .activeOffsetY(12)
+      .failOffsetX([-20, 20])
+      .simultaneousWithExternalGesture(nativeScrollGesture)
+      .onBegin(() => {
+        gestureStartedAtTop.value = scrollOffsetY.value <= 0
+      })
+      .onUpdate((event) => {
+        if (gestureStartedAtTop.value && event.translationY > 0) {
+          dragTranslateY.value = event.translationY
+        }
+      })
+      .onEnd((event) => {
+        if (!gestureStartedAtTop.value) {
+          dragTranslateY.value = withSpring(0, { damping: 18, stiffness: 180 })
+          return
+        }
+
+        if (dragTranslateY.value > 96 || event.velocityY > 900) {
+          runOnJS(closeScreen)()
+          return
+        }
+
+        dragTranslateY.value = withSpring(0, { damping: 18, stiffness: 180 })
+      })
+      .onFinalize(() => {
+        gestureStartedAtTop.value = false
+        if (dragTranslateY.value > 0) {
+          dragTranslateY.value = withSpring(0, { damping: 18, stiffness: 180 })
+        }
+      })
+  ), [closeScreen, dragTranslateY, focusedField, gestureStartedAtTop, nativeScrollGesture, scrollOffsetY])
 
   const loadGig = React.useCallback(async (refreshing: boolean) => {
     if (normalizedGigId == null) {
       setLoadError('Gig ID is missing.')
       setIsLoading(false)
-      setIsRefreshing(false)
       return
     }
 
-    if (refreshing) {
-      setIsRefreshing(true)
-    } else {
-      setIsLoading(true)
-    }
+    setIsLoading(true)
 
     try {
       const nextGig = await fetchPublicGigById(session?.access_token, normalizedGigId)
@@ -143,7 +198,6 @@ export default function PublicGigDetailScreen() {
       setLoadError(toErrorMessage(error))
     } finally {
       setIsLoading(false)
-      setIsRefreshing(false)
     }
   }, [normalizedGigId, session?.access_token])
 
@@ -242,20 +296,23 @@ export default function PublicGigDetailScreen() {
           headerShown: false,
           presentation: 'modal',
           animation: 'slide_from_bottom',
+          gestureEnabled: false,
           contentStyle: {
             backgroundColor: colors.background
           }
         }}
       />
 
-      <View
-        style={[
-          styles.screen,
-          {
-            backgroundColor: colors.background
-          }
-        ]}
-      >
+      <GestureDetector gesture={dismissGesture}>
+        <Animated.View
+          style={[
+            styles.screen,
+            animatedScreenStyle,
+            {
+              backgroundColor: colors.background
+            }
+          ]}
+        >
         <View
           style={[
             styles.headerBar,
@@ -269,7 +326,7 @@ export default function PublicGigDetailScreen() {
           <View style={styles.headerRow}>
             <Pressable
               accessibilityRole="button"
-              onPress={() => { router.back() }}
+              onPress={closeScreen}
               style={({ pressed }) => [
                 styles.headerIconButton,
                 {
@@ -290,19 +347,17 @@ export default function PublicGigDetailScreen() {
           </View>
         </View>
 
-        <ScrollView
-          contentContainerStyle={styles.contentContainer}
-          refreshControl={(
-            <RefreshControl
-              colors={[colors.accent]}
-              onRefresh={() => { void loadGig(true) }}
-              refreshing={isRefreshing}
-              tintColor={colors.accent}
-            />
-          )}
-          showsVerticalScrollIndicator={false}
-          style={styles.scrollArea}
-        >
+        <GestureDetector gesture={nativeScrollGesture}>
+          <Animated.ScrollView
+            bounces={false}
+            contentContainerStyle={styles.contentContainer}
+            keyboardShouldPersistTaps="handled"
+            onScroll={scrollHandler}
+            overScrollMode="never"
+            scrollEventThrottle={16}
+            showsVerticalScrollIndicator={false}
+            style={styles.scrollArea}
+          >
           {isLoading && gig == null
             ? (
               <AppSurface mode={mode} padding={20}>
@@ -540,6 +595,12 @@ export default function PublicGigDetailScreen() {
                       setApplyError(null)
                       setIntro(value)
                     }}
+                    onBlur={() => {
+                      setFocusedField((currentField) => currentField === 'intro' ? null : currentField)
+                    }}
+                    onFocus={() => {
+                      setFocusedField('intro')
+                    }}
                     placeholder="Share relevant experience, what you can handle, and how you will approach the work."
                     value={intro}
                   />
@@ -553,13 +614,20 @@ export default function PublicGigDetailScreen() {
                       setApplyError(null)
                       setAvailability(value)
                     }}
+                    onBlur={() => {
+                      setFocusedField((currentField) => currentField === 'availability' ? null : currentField)
+                    }}
+                    onFocus={() => {
+                      setFocusedField('availability')
+                    }}
                     placeholder="Tomorrow after 2 PM, or Saturday morning."
                     value={availability}
                   />
                 </AppSurface>
               </>
               )}
-        </ScrollView>
+          </Animated.ScrollView>
+        </GestureDetector>
 
         {gig == null
           ? null
@@ -584,7 +652,8 @@ export default function PublicGigDetailScreen() {
               </PrimaryButton>
             </View>
             )}
-      </View>
+        </Animated.View>
+      </GestureDetector>
     </>
   )
 }

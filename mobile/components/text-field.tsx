@@ -1,4 +1,5 @@
-import { Text, TextInput, type TextInputProps, View } from 'react-native'
+import { Text, type TextInputProps, View } from 'react-native'
+import { TextInput } from 'react-native-gesture-handler'
 import { palette, type PaletteMode } from '@/constants/palette'
 
 type TextFieldProps = TextInputProps & {

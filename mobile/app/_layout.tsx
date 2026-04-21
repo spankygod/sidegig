@@ -6,6 +6,7 @@ import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
 import React from 'react'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import 'react-native-reanimated'
 import { palette } from '@/constants/palette'
 import { useColorScheme } from '@/hooks/use-color-scheme'
@@ -56,22 +57,24 @@ export default function RootLayout() {
   }
 
   return (
-    <SessionProvider>
-      <ThemeProvider value={buildTheme(resolvedMode)}>
-        <Stack
-          screenOptions={{
-            contentStyle: {
-              backgroundColor: palette[resolvedMode].background
-            },
-            headerBackButtonDisplayMode: 'minimal'
-          }}
-        >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
-          <Stack.Screen name="sign-in" options={{ headerShown: false }} />
-        </Stack>
-        <StatusBar style={resolvedMode === 'dark' ? 'light' : 'dark'} />
-      </ThemeProvider>
-    </SessionProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SessionProvider>
+        <ThemeProvider value={buildTheme(resolvedMode)}>
+          <Stack
+            screenOptions={{
+              contentStyle: {
+                backgroundColor: palette[resolvedMode].background
+              },
+              headerBackButtonDisplayMode: 'minimal'
+            }}
+          >
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+            <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+          </Stack>
+          <StatusBar style={resolvedMode === 'dark' ? 'light' : 'dark'} />
+        </ThemeProvider>
+      </SessionProvider>
+    </GestureHandlerRootView>
   )
 }
