@@ -207,13 +207,10 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
       throw fastify.httpErrors.badRequest('Latitude and longitude must be provided together')
     }
 
-    const workerServiceArea = request.authUser == null
-      ? null
-      : await getWorkerServiceArea(fastify.db, request.authUser.id)
-
     const gig = await getPublicGigById(fastify.db, request.params.gigId, {
-      latitude: workerServiceArea?.latitude ?? request.query.latitude,
-      longitude: workerServiceArea?.longitude ?? request.query.longitude
+      workerId: request.authUser?.id,
+      latitude: request.query.latitude,
+      longitude: request.query.longitude
     })
 
     if (gig == null) {

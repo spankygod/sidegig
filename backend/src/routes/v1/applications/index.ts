@@ -34,8 +34,6 @@ const applicationsRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/', {
     onRequest: [fastify.authenticate]
   }, async function (request) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const applications = await listWorkerApplications(fastify.db, request.authUser!.id)
 
     return {

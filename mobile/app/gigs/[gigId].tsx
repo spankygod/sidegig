@@ -172,16 +172,14 @@ export default function PublicGigDetailScreen() {
     setIsLoading(true)
 
     try {
-      const nextGig = await fetchPublicGigById(session?.access_token, normalizedGigId)
-      let applications: GigApplicationSummary[] = []
+      const [nextGig, applicationsResult] = await Promise.all([
+        fetchPublicGigById(session?.access_token, normalizedGigId),
+        session?.access_token == null
+          ? Promise.resolve<GigApplicationSummary[]>([])
+          : fetchMyApplications(session.access_token).catch(() => [])
+      ])
 
-      if (session?.access_token != null) {
-        try {
-          applications = await fetchMyApplications(session.access_token)
-        } catch {
-          applications = []
-        }
-      }
+      const applications = applicationsResult
 
       const existingApplication = applications.find((application) => application.gig.id === normalizedGigId)
 

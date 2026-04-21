@@ -8,6 +8,7 @@ export default fp(async (fastify) => {
     connectionString: fastify.config.databaseUrl
   })
   const orm = drizzle(db, { schema })
+  await db.query('select 1')
 
   fastify.decorate('db', db)
   fastify.decorate('orm', orm)
