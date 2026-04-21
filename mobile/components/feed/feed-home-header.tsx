@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons'
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { palette, type PaletteMode } from '@/constants/palette'
+import { layout } from '@/constants/theme'
+import { textStyles } from '@/constants/typography'
 
 export type FeedHomeTab = 'find' | 'create'
 
@@ -24,36 +26,56 @@ export function FeedHomeHeader({
   searchQuery
 }: FeedHomeHeaderProps) {
   const colors = palette[mode ?? 'light']
+  const placeholderColor = colors.textMuted
 
   return (
     <>
       <View style={styles.heroBlock}>
         <View style={styles.appBar}>
           <Text selectable style={[styles.appBarTitle, { color: colors.textMuted }]}>
-            Home
+            Discover jobs
           </Text>
           <Pressable
             accessibilityRole="button"
             onPress={onRefresh}
-            style={({ pressed }) => [styles.iconPill, pressed ? styles.pressed : null]}
+            style={({ pressed }) => [
+              styles.iconPill,
+              {
+                backgroundColor: colors.surfaceMuted,
+                borderColor: colors.border
+              },
+              pressed ? styles.pressed : null
+            ]}
           >
-            <Ionicons color="#11131a" name={isRefreshing ? 'sync' : 'options-outline'} size={18} />
+            <Ionicons color={colors.text} name={isRefreshing ? 'sync' : 'refresh-outline'} size={18} />
           </Pressable>
         </View>
 
         <Text selectable style={[styles.heroTitle, { color: colors.text }]}>
-          Find the right local help fast.
+          Search jobs around you.
+        </Text>
+
+        <Text selectable style={[styles.heroSubtitle, { color: colors.textMuted }]}>
+          Browse nearby roles, filter fast, and jump into the ones that fit.
         </Text>
 
         <View style={styles.searchRow}>
-          <View style={styles.searchField}>
-            <Ionicons color="#6d7484" name="search-outline" size={18} />
+          <View
+            style={[
+              styles.searchField,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border
+              }
+            ]}
+          >
+            <Ionicons color={placeholderColor} name="search-outline" size={18} />
             <TextInput
               onChangeText={onChangeSearchQuery}
-              placeholder="Search errands, cleaning, moving..."
-              placeholderTextColor="#6d7484"
+              placeholder="Search job"
+              placeholderTextColor={placeholderColor}
               selectionColor={colors.accent}
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: colors.text }]}
               value={searchQuery}
             />
             {searchQuery.trim() === ''
@@ -65,31 +87,52 @@ export function FeedHomeHeader({
                   onPress={() => { onChangeSearchQuery('') }}
                   style={({ pressed }) => [styles.clearSearchButton, pressed ? styles.pressed : null]}
                 >
-                  <Ionicons color="#6d7484" name="close" size={16} />
+                  <Ionicons color={placeholderColor} name="close" size={16} />
                 </Pressable>
                 )}
           </View>
           <Pressable
             accessibilityRole="button"
-            onPress={() => { onSelectTab('create') }}
-            style={({ pressed }) => [styles.searchAction, pressed ? styles.pressed : null]}
+            onPress={onRefresh}
+            style={({ pressed }) => [
+              styles.searchAction,
+              {
+                backgroundColor: colors.surfaceMuted,
+                borderColor: colors.border
+              },
+              pressed ? styles.pressed : null
+            ]}
           >
-            <Ionicons color="#ffffff" name="add" size={18} />
+            <Ionicons color={colors.text} name="funnel-outline" size={18} />
           </Pressable>
         </View>
       </View>
 
-      <View style={styles.segmentWrap}>
+      <View
+        style={[
+          styles.segmentWrap,
+          {
+            backgroundColor: colors.surfaceMuted,
+            borderColor: colors.border
+          }
+        ]}
+      >
         <Pressable
           accessibilityRole="button"
           onPress={() => { onSelectTab('find') }}
           style={({ pressed }) => [
             styles.segmentItem,
-            activeTab === 'find' ? styles.segmentItemActive : null,
+            activeTab === 'find' ? { backgroundColor: colors.accent } : null,
             pressed ? styles.pressed : null
           ]}
         >
-          <Text selectable style={activeTab === 'find' ? styles.segmentItemActiveText : styles.segmentItemText}>
+          <Text
+            selectable
+            style={[
+              activeTab === 'find' ? styles.segmentItemActiveText : styles.segmentItemText,
+              { color: activeTab === 'find' ? '#ffffff' : colors.text }
+            ]}
+          >
             Find a gig
           </Text>
         </Pressable>
@@ -98,11 +141,17 @@ export function FeedHomeHeader({
           onPress={() => { onSelectTab('create') }}
           style={({ pressed }) => [
             styles.segmentItem,
-            activeTab === 'create' ? styles.segmentItemActive : null,
+            activeTab === 'create' ? { backgroundColor: colors.accent } : null,
             pressed ? styles.pressed : null
           ]}
         >
-          <Text selectable style={activeTab === 'create' ? styles.segmentItemActiveText : styles.segmentItemText}>
+          <Text
+            selectable
+            style={[
+              activeTab === 'create' ? styles.segmentItemActiveText : styles.segmentItemText,
+              { color: activeTab === 'create' ? '#ffffff' : colors.text }
+            ]}
+          >
             Create a gig
           </Text>
         </Pressable>
@@ -124,25 +173,28 @@ const styles = StyleSheet.create({
   },
   appBarTitle: {
     fontSize: 13,
-    fontWeight: '700',
+    ...textStyles.label,
     letterSpacing: 0.2,
     textTransform: 'capitalize'
   },
   heroTitle: {
     fontSize: 28,
-    fontWeight: '800',
+    ...textStyles.headline,
     lineHeight: 32,
     letterSpacing: -0.8
   },
+  heroSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    ...textStyles.bodyStrong
+  },
   iconPill: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#f4f4f1',
+    width: layout.iconButtonSize,
+    height: layout.iconButtonSize,
+    borderRadius: layout.radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#ecece7'
+    borderWidth: 1
   },
   searchRow: {
     flexDirection: 'row',
@@ -150,12 +202,10 @@ const styles = StyleSheet.create({
   },
   searchField: {
     flex: 1,
-    minHeight: 50,
-    borderRadius: 16,
+    minHeight: layout.inputHeight,
+    borderRadius: layout.radius.lg,
     paddingHorizontal: 14,
-    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#dfe3db',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8
@@ -163,9 +213,8 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     minHeight: 44,
-    color: '#11131a',
     fontSize: 14,
-    fontWeight: '500',
+    ...textStyles.bodyStrong,
     paddingVertical: 0
   },
   clearSearchButton: {
@@ -176,21 +225,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   searchAction: {
-    width: 50,
-    height: 50,
-    borderRadius: 16,
-    backgroundColor: '#185f37',
+    width: layout.inputHeight,
+    height: layout.inputHeight,
+    borderRadius: layout.radius.lg,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    borderWidth: 1
   },
   segmentWrap: {
     flexDirection: 'row',
     gap: 0,
     padding: 4,
     borderRadius: 18,
-    backgroundColor: '#f4f4f1',
     borderWidth: 1,
-    borderColor: '#ecece7'
+    borderColor: 'transparent'
   },
   segmentItem: {
     flex: 1,
@@ -201,18 +249,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderWidth: 0
   },
-  segmentItemActive: {
-    backgroundColor: '#185f37'
-  },
   segmentItemText: {
-    color: '#11131a',
     fontSize: 14,
-    fontWeight: '700'
+    ...textStyles.label
   },
   segmentItemActiveText: {
-    color: '#ffffff',
     fontSize: 14,
-    fontWeight: '700'
+    ...textStyles.label
   },
   pressed: {
     opacity: 0.88

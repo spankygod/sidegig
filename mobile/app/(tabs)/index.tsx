@@ -8,6 +8,7 @@ import { PostJobComposer } from '@/components/post-job-composer'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { fetchPublicGigs } from '@/lib/backend-client'
 import { palette } from '@/constants/palette'
+import { layout } from '@/constants/theme'
 import { type GigCategory, type PublicGig, type UserProfile } from '@/lib/raket-types'
 import { useSession } from '@/providers/session-provider'
 
@@ -44,7 +45,6 @@ export default function FeedScreen() {
   const [discoveryPage, setDiscoveryPage] = React.useState(0)
   const [marketplaceGigs, setMarketplaceGigs] = React.useState<PublicGig[]>([])
   const [marketplaceTotalCount, setMarketplaceTotalCount] = React.useState(0)
-  const [hasMoreMarketplacePages, setHasMoreMarketplacePages] = React.useState(false)
   const [marketplaceError, setMarketplaceError] = React.useState<string | null>(null)
   const [isMarketplaceLoading, setIsMarketplaceLoading] = React.useState(false)
   const [hasLoadedMarketplace, setHasLoadedMarketplace] = React.useState(false)
@@ -80,7 +80,6 @@ export default function FeedScreen() {
     if (accessToken == null) {
       setMarketplaceGigs([])
       setMarketplaceTotalCount(0)
-      setHasMoreMarketplacePages(false)
       setMarketplaceError(null)
       setHasLoadedMarketplace(true)
       return
@@ -103,7 +102,6 @@ export default function FeedScreen() {
 
       setMarketplaceGigs(response.gigs)
       setMarketplaceTotalCount(response.page.total)
-      setHasMoreMarketplacePages(response.page.hasMore)
       setMarketplaceError(null)
     } catch (nextError) {
       setMarketplaceError(nextError instanceof Error ? nextError.message : 'Unable to load gigs right now.')
@@ -169,7 +167,7 @@ export default function FeedScreen() {
         />
       )}
       showsVerticalScrollIndicator={false}
-      style={styles.screen}
+      style={[styles.screen, { backgroundColor: colors.background }]}
     >
       <FeedHomeHeader
         activeTab={activeTab}
@@ -185,7 +183,6 @@ export default function FeedScreen() {
         ? (
           <FindGigHomeView
             discoveryError={marketplaceError}
-            discoveryHasMore={hasMoreMarketplacePages}
             draftCount={draftCount}
             error={error}
             isDiscoveryLoading={!hasLoadedMarketplace || isMarketplaceLoading}
@@ -202,8 +199,6 @@ export default function FeedScreen() {
             }}
             onOpenGigs={() => { router.navigate('/gigs') }}
             onOpenProfile={() => { router.navigate('/profile') }}
-            onNextDiscoveryPage={() => { setDiscoveryPage((current) => Math.min(current + 1, discoveryPageCount - 1)) }}
-            onPreviousDiscoveryPage={() => { setDiscoveryPage((current) => Math.max(current - 1, 0)) }}
             profile={profile}
             publishedCount={publishedCount}
             recentGigs={recentGigs}
@@ -231,12 +226,11 @@ export default function FeedScreen() {
 
 const styles = StyleSheet.create({
   screen: {
-    flex: 1,
-    backgroundColor: '#ffffff'
+    flex: 1
   },
   contentContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 132,
-    gap: 16
+    paddingHorizontal: layout.screenPadding,
+    paddingBottom: layout.screenBottomPadding,
+    gap: layout.sectionGap
   }
 })
