@@ -1,6 +1,7 @@
 import type { PropsWithChildren } from 'react'
 import { ActivityIndicator, Pressable, Text } from 'react-native'
 import { palette, type PaletteMode } from '@/constants/palette'
+import { buildPrimaryButtonStyle, buildPrimaryButtonTextStyle } from '@/styles/components/primary-button'
 
 type PrimaryButtonProps = PropsWithChildren<{
   disabled?: boolean
@@ -27,34 +28,13 @@ export function PrimaryButton({
       accessibilityRole="button"
       disabled={isDisabled}
       onPress={onPress}
-      style={({ pressed }) => ({
-        minHeight: 52,
-        borderRadius: 8,
-        borderCurve: 'continuous',
-        paddingHorizontal: 18,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: isSecondary ? colors.surface : colors.accent,
-        borderWidth: 1,
-        borderColor: isSecondary ? colors.border : colors.accent,
-        opacity: isDisabled ? 0.55 : pressed ? 0.9 : 1,
-        boxShadow: pressed
-          ? '0 4px 14px rgba(15, 118, 110, 0.15)'
-          : '0 8px 20px rgba(15, 118, 110, 0.12)'
-      })}
+      style={({ pressed }) => buildPrimaryButtonStyle(colors, { isDisabled, isSecondary, pressed })}
     >
       {loading
         ? <ActivityIndicator color={isSecondary ? colors.text : '#ffffff'} />
         : typeof children === 'string' || typeof children === 'number'
           ? (
-            <Text
-              selectable
-              style={{
-                color: isSecondary ? colors.text : '#ffffff',
-                fontSize: 16,
-                fontWeight: '700'
-              }}
-            >
+            <Text selectable style={buildPrimaryButtonTextStyle(colors, isSecondary)}>
               {children}
             </Text>
             )

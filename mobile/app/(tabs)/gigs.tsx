@@ -12,6 +12,7 @@ import {
   formatPhpCurrency
 } from '@/lib/raket-types'
 import { useSession } from '@/providers/session-provider'
+import { gigsScreenStyles as styles } from '@/styles/screens/gigs-screen'
 
 function getStatusTone(status: string): 'accent' | 'success' | 'warning' {
   if (status === 'published' || status === 'completed') {
@@ -40,52 +41,22 @@ export default function GigsScreen() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={{
-        padding: 20,
-        gap: 16
-      }}
-      style={{ flex: 1, backgroundColor: colors.background }}
+      contentContainerStyle={styles.contentContainer}
+      style={[styles.screen, { backgroundColor: colors.background }]}
     >
       <AppSurface mode={mode}>
-        <Text
-          selectable
-          style={{
-            color: colors.textMuted,
-            fontSize: 14,
-            fontWeight: '600'
-          }}
-        >
+        <Text selectable style={[styles.heroEyebrow, { color: colors.textMuted }]}>
           Welcome back
         </Text>
-        <Text
-          selectable
-          style={{
-            color: colors.text,
-            fontSize: 28,
-            fontWeight: '800',
-            lineHeight: 34
-          }}
-        >
+        <Text selectable style={[styles.heroTitle, { color: colors.text }]}>
           {firstName}, your hiring board is ready.
         </Text>
-        <Text
-          selectable
-          style={{
-            color: colors.textMuted,
-            fontSize: 15,
-            lineHeight: 22
-          }}
-        >
+        <Text selectable style={[styles.heroBody, { color: colors.textMuted }]}>
           Track drafts, keep published jobs moving, and post the next role when you are ready.
         </Text>
       </AppSurface>
 
-      <View
-        style={{
-          flexDirection: 'row',
-          gap: 12
-        }}
-      >
+      <View style={styles.metricsRow}>
         {[
           { label: 'Published', value: publishedCount },
           { label: 'Drafts', value: draftCount },
@@ -93,36 +64,12 @@ export default function GigsScreen() {
         ].map((item) => (
           <View
             key={item.label}
-            style={{
-              flex: 1,
-              borderRadius: 8,
-              borderCurve: 'continuous',
-              borderWidth: 1,
-              borderColor: colors.border,
-              backgroundColor: colors.surface,
-              padding: 16,
-              gap: 8
-            }}
+            style={[styles.metricCard, { borderColor: colors.border, backgroundColor: colors.surface }]}
           >
-            <Text
-              selectable
-              style={{
-                color: colors.textMuted,
-                fontSize: 13,
-                fontWeight: '600'
-              }}
-            >
+            <Text selectable style={[styles.metricLabel, { color: colors.textMuted }]}>
               {item.label}
             </Text>
-            <Text
-              selectable
-              style={{
-                color: colors.text,
-                fontSize: 22,
-                fontWeight: '800',
-                fontVariant: ['tabular-nums']
-              }}
-            >
+            <Text selectable style={[styles.metricValue, { color: colors.text }]}>
               {item.value}
             </Text>
           </View>
@@ -133,14 +80,7 @@ export default function GigsScreen() {
         ? null
         : (
           <AppSurface mode={mode}>
-            <Text
-              selectable
-              style={{
-                color: colors.danger,
-                fontSize: 15,
-                fontWeight: '700'
-              }}
-            >
+            <Text selectable style={[styles.errorText, { color: colors.danger }]}>
               {error}
             </Text>
             <PrimaryButton mode={mode} onPress={() => { void refreshAppData() }} variant="secondary">
@@ -153,23 +93,9 @@ export default function GigsScreen() {
         Post another job
       </PrimaryButton>
 
-      <View style={{ gap: 12 }}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12
-          }}
-        >
-          <Text
-            selectable
-            style={{
-              color: colors.text,
-              fontSize: 20,
-              fontWeight: '800'
-            }}
-          >
+      <View style={styles.listSection}>
+        <View style={styles.listHeader}>
+          <Text selectable style={[styles.listTitle, { color: colors.text }]}>
             Active and recent gigs
           </Text>
           <PrimaryButton mode={mode} onPress={() => { void refreshAppData() }} variant="secondary">
@@ -180,105 +106,41 @@ export default function GigsScreen() {
         {myGigs.length === 0
           ? (
             <AppSurface mode={mode}>
-              <Text
-                selectable
-                style={{
-                  color: colors.text,
-                  fontSize: 16,
-                  fontWeight: '700'
-                }}
-              >
+              <Text selectable style={[styles.emptyTitle, { color: colors.text }]}>
                 No gigs yet
               </Text>
-              <Text
-                selectable
-                style={{
-                  color: colors.textMuted,
-                  fontSize: 15,
-                  lineHeight: 22
-                }}
-              >
+              <Text selectable style={[styles.emptyBody, { color: colors.textMuted }]}>
                 Start with one job post. It will appear here as soon as it is saved.
               </Text>
             </AppSurface>
             )
           : myGigs.map((gig) => (
             <AppSurface key={gig.id} mode={mode}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'flex-start',
-                  justifyContent: 'space-between',
-                  gap: 12
-                }}
-              >
-                <View style={{ flex: 1, gap: 6 }}>
-                  <Text
-                    selectable
-                    style={{
-                      color: colors.text,
-                      fontSize: 18,
-                      fontWeight: '800',
-                      lineHeight: 24
-                    }}
-                  >
+              <View style={styles.gigHeader}>
+                <View style={styles.gigCopy}>
+                  <Text selectable style={[styles.gigTitle, { color: colors.text }]}>
                     {gig.title}
                   </Text>
-                  <Text
-                    selectable
-                    style={{
-                      color: colors.textMuted,
-                      fontSize: 14,
-                      lineHeight: 20
-                    }}
-                  >
+                  <Text selectable style={[styles.gigMeta, { color: colors.textMuted }]}>
                     {formatGigCategory(gig.category)} · {formatDurationBucket(gig.durationBucket)}
                   </Text>
                 </View>
                 <StatusBadge label={gig.status} mode={mode} tone={getStatusTone(gig.status)} />
               </View>
 
-              <Text
-                selectable
-                style={{
-                  color: colors.text,
-                  fontSize: 17,
-                  fontWeight: '700'
-                }}
-              >
+              <Text selectable style={[styles.gigPrice, { color: colors.text }]}>
                 {formatPhpCurrency(gig.priceAmount)}
               </Text>
 
-              <Text
-                selectable
-                style={{
-                  color: colors.textMuted,
-                  fontSize: 15,
-                  lineHeight: 22
-                }}
-              >
+              <Text selectable style={[styles.gigBody, { color: colors.textMuted }]}>
                 {gig.location.barangay}, {gig.location.city}
               </Text>
 
-              <Text
-                selectable
-                style={{
-                  color: colors.text,
-                  fontSize: 15,
-                  lineHeight: 22
-                }}
-              >
+              <Text selectable style={[styles.gigBody, { color: colors.text }]}>
                 {gig.scheduleSummary}
               </Text>
 
-              <Text
-                selectable
-                style={{
-                  color: colors.textMuted,
-                  fontSize: 13,
-                  lineHeight: 18
-                }}
-              >
+              <Text selectable style={[styles.gigFootnote, { color: colors.textMuted }]}>
                 {gig.applicationCount} applicants · Updated {formatGigTimestamp(gig.updatedAt)}
               </Text>
             </AppSurface>

@@ -32,6 +32,14 @@ export const layout = {
   screenPadding: 20,
   sectionGap: 16,
   screenBottomPadding: 132,
+  spacing: {
+    xxs: 4,
+    xs: 8,
+    sm: 10,
+    md: 12,
+    lg: 14,
+    xl: 16,
+  },
   radius: {
     sm: 8,
     md: 12,
@@ -39,6 +47,12 @@ export const layout = {
     xl: 20,
     xxl: 24,
     pill: 999,
+  },
+  size: {
+    avatarMd: 52,
+    avatarLg: 54,
+    badgeSm: 22,
+    chipHeight: 32,
   },
   iconButtonSize: 40,
   inputHeight: 50,

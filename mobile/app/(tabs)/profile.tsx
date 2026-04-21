@@ -4,6 +4,7 @@ import { PrimaryButton } from '@/components/primary-button'
 import { palette } from '@/constants/palette'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { useSession } from '@/providers/session-provider'
+import { profileScreenStyles as styles } from '@/styles/screens/profile-screen'
 
 function formatNullableValue(value: string | null | undefined): string {
   if (value == null || value.trim() === '') {
@@ -22,32 +23,14 @@ export default function ProfileScreen() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={{
-        padding: 20,
-        gap: 16
-      }}
-      style={{ flex: 1, backgroundColor: colors.background }}
+      contentContainerStyle={styles.contentContainer}
+      style={[styles.screen, { backgroundColor: colors.background }]}
     >
       <AppSurface mode={mode}>
-        <Text
-          selectable
-          style={{
-            color: colors.text,
-            fontSize: 26,
-            fontWeight: '800',
-            lineHeight: 32
-          }}
-        >
+        <Text selectable style={[styles.heroTitle, { color: colors.text }]}>
           {profile?.displayName ?? 'Your profile'}
         </Text>
-        <Text
-          selectable
-          style={{
-            color: colors.textMuted,
-            fontSize: 15,
-            lineHeight: 22
-          }}
-        >
+        <Text selectable style={[styles.heroBody, { color: colors.textMuted }]}>
           {authUser?.email ?? 'Google account connected'}
         </Text>
       </AppSurface>
@@ -56,31 +39,17 @@ export default function ProfileScreen() {
         ? null
         : (
           <AppSurface mode={mode}>
-            <Text
-              selectable
-              style={{
-                color: colors.danger,
-                fontSize: 15,
-                fontWeight: '700'
-              }}
-            >
+            <Text selectable style={[styles.errorText, { color: colors.danger }]}>
               {error}
             </Text>
           </AppSurface>
           )}
 
       <AppSurface mode={mode}>
-        <Text
-          selectable
-          style={{
-            color: colors.text,
-            fontSize: 16,
-            fontWeight: '700'
-          }}
-        >
+        <Text selectable style={[styles.sectionTitle, { color: colors.text }]}>
           Account details
         </Text>
-        <View style={{ gap: 10 }}>
+        <View style={styles.detailStack}>
           {[
             ['Display name', formatNullableValue(profile?.displayName)],
             ['City', formatNullableValue(profile?.city)],
@@ -88,25 +57,11 @@ export default function ProfileScreen() {
             ['Bio', formatNullableValue(profile?.bio)],
             ['User ID', formatNullableValue(profile?.id)]
           ].map(([label, value]) => (
-            <View key={label} style={{ gap: 4 }}>
-              <Text
-                selectable
-                style={{
-                  color: colors.textMuted,
-                  fontSize: 13,
-                  fontWeight: '600'
-                }}
-              >
+            <View key={label} style={styles.detailItem}>
+              <Text selectable style={[styles.detailLabel, { color: colors.textMuted }]}>
                 {label}
               </Text>
-              <Text
-                selectable
-                style={{
-                  color: colors.text,
-                  fontSize: 15,
-                  lineHeight: 21
-                }}
-              >
+              <Text selectable style={[styles.detailValue, { color: colors.text }]}>
                 {value}
               </Text>
             </View>
@@ -114,7 +69,7 @@ export default function ProfileScreen() {
         </View>
       </AppSurface>
 
-      <View style={{ flexDirection: 'row', gap: 12 }}>
+      <View style={styles.statsRow}>
         {[
           ['Rating', profile?.stats.rating ?? 0],
           ['Reviews', profile?.stats.reviewCount ?? 0],
@@ -122,36 +77,12 @@ export default function ProfileScreen() {
         ].map(([label, value]) => (
           <View
             key={label}
-            style={{
-              flex: 1,
-              borderRadius: 8,
-              borderCurve: 'continuous',
-              borderWidth: 1,
-              borderColor: colors.border,
-              backgroundColor: colors.surface,
-              padding: 16,
-              gap: 8
-            }}
+            style={[styles.statCard, { borderColor: colors.border, backgroundColor: colors.surface }]}
           >
-            <Text
-              selectable
-              style={{
-                color: colors.textMuted,
-                fontSize: 13,
-                fontWeight: '600'
-              }}
-            >
+            <Text selectable style={[styles.statLabel, { color: colors.textMuted }]}>
               {label}
             </Text>
-            <Text
-              selectable
-              style={{
-                color: colors.text,
-                fontSize: 22,
-                fontWeight: '800',
-                fontVariant: ['tabular-nums']
-              }}
-            >
+            <Text selectable style={[styles.statValue, { color: colors.text }]}>
               {String(value)}
             </Text>
           </View>

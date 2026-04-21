@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { ScrollView, Text, View } from 'react-native'
 import { palette } from '@/constants/palette'
 import { useColorScheme } from '@/hooks/use-color-scheme'
+import { messagesScreenStyles as styles } from '@/styles/screens/messages-screen'
 
 type PaletteColors = (typeof palette)[keyof typeof palette]
 
@@ -88,16 +89,9 @@ function getPreviewColor(status: (typeof mockThreads)[number]['status'], colors:
 function renderPreviewPrefix(status: (typeof mockThreads)[number]['status'], colors: PaletteColors) {
   if (status === 'voice') {
     return (
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+      <View style={styles.previewPrefixRow}>
         <Ionicons color={colors.textMuted} name="mic" size={12} />
-        <Text
-          selectable
-          style={{
-            color: colors.textMuted,
-            fontSize: 13,
-            lineHeight: 18
-          }}
-        >
+        <Text selectable style={[styles.previewPrefixText, { color: colors.textMuted }]}>
           Voice message
         </Text>
       </View>
@@ -106,16 +100,9 @@ function renderPreviewPrefix(status: (typeof mockThreads)[number]['status'], col
 
   if (status === 'photo') {
     return (
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+      <View style={styles.previewPrefixRow}>
         <Ionicons color={colors.textMuted} name="image-outline" size={12} />
-        <Text
-          selectable
-          style={{
-            color: colors.textMuted,
-            fontSize: 13,
-            lineHeight: 18
-          }}
-        >
+        <Text selectable style={[styles.previewPrefixText, { color: colors.textMuted }]}>
           Photo
         </Text>
       </View>
@@ -131,233 +118,76 @@ export default function MessagesScreen() {
   const colors = palette[mode]
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={{
-          paddingHorizontal: 20,
-          paddingTop: 24,
-          paddingBottom: 112,
-          gap: 16
-        }}
-        style={{ flex: 1 }}
+        contentContainerStyle={styles.contentContainer}
+        style={styles.scrollArea}
       >
-        <View
-          style={{
-            gap: 10
-          }}
-        >
-          <Text
-            selectable
-            style={{
-              color: colors.textMuted,
-              fontSize: 13,
-              fontWeight: '700',
-              letterSpacing: 0.2
-            }}
-          >
+        <View style={styles.heroBlock}>
+          <Text selectable style={[styles.eyebrow, { color: colors.textMuted }]}>
             Messages
           </Text>
-          <Text
-            selectable
-            style={{
-              color: colors.text,
-              fontSize: 28,
-              fontWeight: '800',
-              lineHeight: 34
-            }}
-          >
+          <Text selectable style={[styles.title, { color: colors.text }]}>
             Messages
           </Text>
-          <Text
-            selectable
-            style={{
-              color: colors.textMuted,
-              fontSize: 15,
-              lineHeight: 22
-            }}
-          >
+          <Text selectable style={[styles.body, { color: colors.textMuted }]}>
             Keep client and helper conversations moving without losing track of replies.
           </Text>
         </View>
 
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'flex-end',
-            justifyContent: 'center',
-            gap: 20,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.border,
-            paddingBottom: 10
-          }}
-        >
-          <View style={{ gap: 8 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={[styles.tabsRow, { borderBottomColor: colors.border }]}>
+          <View style={styles.activeTab}>
+            <View style={styles.tabLabelRow}>
               <Ionicons color={colors.text} name="chatbubble-ellipses" size={15} />
-              <Text
-                selectable
-                style={{
-                  color: colors.text,
-                  fontSize: 15,
-                  fontWeight: '800'
-                }}
-              >
+              <Text selectable style={[styles.activeTabLabel, { color: colors.text }]}>
                 Chats
               </Text>
             </View>
-            <View
-              style={{
-                height: 2,
-                width: 108,
-                borderRadius: 999,
-                backgroundColor: colors.text
-              }}
-            />
+            <View style={[styles.activeTabIndicator, { backgroundColor: colors.text }]} />
           </View>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingBottom: 2 }}>
+          <View style={styles.tabLabelRowCompact}>
             <Ionicons color={colors.textMuted} name="call-outline" size={15} />
-            <Text
-              selectable
-              style={{
-                color: colors.textMuted,
-                fontSize: 15,
-                fontWeight: '600'
-              }}
-            >
+            <Text selectable style={[styles.inactiveTabLabel, { color: colors.textMuted }]}>
               Call
             </Text>
           </View>
         </View>
 
-        <View
-          style={{
-            minHeight: 42,
-            borderRadius: 999,
-            backgroundColor: colors.surfaceMuted,
-            paddingHorizontal: 14,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 10
-          }}
-        >
+        <View style={[styles.searchBar, { backgroundColor: colors.surfaceMuted }]}>
           <Ionicons color={colors.textMuted} name="search-outline" size={16} />
-          <Text
-            selectable
-            style={{
-              flex: 1,
-              color: colors.textMuted,
-              fontSize: 14,
-              fontWeight: '500'
-            }}
-          >
+          <Text selectable style={[styles.searchText, { color: colors.textMuted }]}>
             Search messages
           </Text>
           <Ionicons color={colors.textMuted} name="options-outline" size={16} />
         </View>
 
-        <View
-          style={{
-            borderRadius: 16,
-            backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
-            paddingHorizontal: 14,
-            paddingVertical: 11,
-            flexDirection: 'row',
-            alignItems: 'flex-start',
-            gap: 12
-          }}
-        >
-          <View
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 18,
-              backgroundColor: featuredReply.accent,
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <Text
-              selectable
-              style={{
-                color: '#4f6158',
-                fontSize: 13,
-                fontWeight: '800'
-              }}
-            >
+        <View style={[styles.featuredCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={[styles.featuredAvatar, { backgroundColor: featuredReply.accent }]}>
+            <Text selectable style={styles.featuredAvatarText}>
               TM
             </Text>
           </View>
-          <View style={{ flex: 1, gap: 4 }}>
-            <Text
-              selectable
-              style={{
-                color: colors.text,
-                fontSize: 13,
-                lineHeight: 19
-              }}
-            >
-              <Text style={{ fontWeight: '800' }}>{featuredReply.name}</Text>
+          <View style={styles.featuredCopy}>
+            <Text selectable style={[styles.featuredMessage, { color: colors.text }]}>
+              <Text style={styles.featuredMessageStrong}>{featuredReply.name}</Text>
               <Text> {featuredReply.note} </Text>
               <Text style={{ color: colors.warning }}>🥺</Text>
             </Text>
-            <View
-              style={{
-                alignSelf: 'flex-start',
-                borderRadius: 999,
-                borderWidth: 1,
-                borderColor: '#e3dff8',
-                backgroundColor: '#f7f4ff',
-                paddingHorizontal: 10,
-                paddingVertical: 5
-              }}
-            >
-              <Text
-                selectable
-                style={{
-                  color: '#7b61ff',
-                  fontSize: 12,
-                  fontWeight: '700'
-                }}
-              >
+            <View style={styles.featuredReplyAccent}>
+              <Text selectable style={styles.featuredReplyText}>
                 Reply Now
               </Text>
             </View>
           </View>
         </View>
 
-        <View style={{ gap: 2 }}>
+        <View style={styles.threadList}>
           {mockThreads.map((thread) => (
-            <View
-              key={thread.id}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 11,
-                paddingVertical: 8
-              }}
-            >
-              <View
-                style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: 21,
-                  backgroundColor: thread.accent,
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <Text
-                  selectable
-                  style={{
-                    color: '#ffffff',
-                    fontSize: 14,
-                    fontWeight: '800'
-                  }}
-                >
+            <View key={thread.id} style={styles.threadRow}>
+              <View style={[styles.threadAvatar, { backgroundColor: thread.accent }]}>
+                <Text selectable style={styles.threadAvatarText}>
                   {thread.name
                     .split(' ')
                     .map((part) => part[0])
@@ -366,29 +196,14 @@ export default function MessagesScreen() {
                 </Text>
               </View>
 
-              <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text
-                    selectable
-                    numberOfLines={1}
-                    style={{
-                      flexShrink: 1,
-                      color: colors.text,
-                      fontSize: 15,
-                      fontWeight: '800'
-                    }}
-                  >
+              <View style={styles.threadCopy}>
+                <View style={styles.threadHeader}>
+                  <Text selectable numberOfLines={1} style={[styles.threadName, { color: colors.text }]}>
                     {thread.name}
                   </Text>
                   {thread.status === 'priority'
                     ? (
-                      <Text
-                        selectable
-                        style={{
-                          color: '#7b61ff',
-                          fontSize: 12
-                        }}
-                      >
+                      <Text selectable style={styles.threadPin}>
                         📌
                       </Text>
                       )
@@ -399,12 +214,7 @@ export default function MessagesScreen() {
                   <Text
                     selectable
                     numberOfLines={1}
-                    style={{
-                      color: getPreviewColor(thread.status, colors),
-                      fontSize: 13,
-                      lineHeight: 18,
-                      fontWeight: thread.status === 'typing' ? '600' : '500'
-                    }}
+                    style={[styles.previewText, { color: getPreviewColor(thread.status, colors) }]}
                   >
                     {thread.status === 'sent' ? '✓✓ ' : ''}
                     {thread.preview}
@@ -412,38 +222,14 @@ export default function MessagesScreen() {
                 )}
               </View>
 
-              <View style={{ alignItems: 'flex-end', gap: 8 }}>
-                <Text
-                  selectable
-                  style={{
-                    color: colors.textMuted,
-                    fontSize: 12,
-                    fontWeight: '600'
-                  }}
-                >
+              <View style={styles.threadMeta}>
+                <Text selectable style={[styles.timeLabel, { color: colors.textMuted }]}>
                   {thread.timeLabel}
                 </Text>
                 {thread.unreadCount > 0
                   ? (
-                    <View
-                      style={{
-                        minWidth: 20,
-                        height: 20,
-                        paddingHorizontal: 6,
-                        borderRadius: 999,
-                        backgroundColor: '#d84c4c',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      <Text
-                        selectable
-                        style={{
-                          color: '#ffffff',
-                          fontSize: 11,
-                          fontWeight: '800'
-                        }}
-                      >
+                    <View style={styles.unreadBadge}>
+                      <Text selectable style={styles.unreadBadgeText}>
                         {String(thread.unreadCount)}
                       </Text>
                     </View>

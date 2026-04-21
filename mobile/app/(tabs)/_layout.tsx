@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons'
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
-import { ActivityIndicator, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { ActivityIndicator, Pressable, useWindowDimensions, View } from 'react-native'
 import { Redirect, Tabs } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { palette } from '@/constants/palette'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { useSession } from '@/providers/session-provider'
+import { tabLayoutStyles as styles } from '@/styles/screens/tab-layout'
 
 function FloatingTabBar({ descriptors, navigation, state }: BottomTabBarProps) {
   const insets = useSafeAreaInsets()
@@ -85,14 +86,7 @@ export default function TabLayout() {
 
   if (!isReady) {
     return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: colors.background
-        }}
-      >
+      <View style={[styles.loadingScreen, { backgroundColor: colors.background }]}>
         <ActivityIndicator color={colors.accent} size="large" />
       </View>
     )
@@ -158,45 +152,3 @@ export default function TabLayout() {
     </Tabs>
   )
 }
-
-const styles = StyleSheet.create({
-  wrapper: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    alignItems: 'center'
-  },
-  dock: {
-    height: 52,
-    paddingHorizontal: 12,
-    borderRadius: 18,
-    borderCurve: 'continuous',
-    backgroundColor: '#050505',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 0,
-      height: 12
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 16
-  },
-  item: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  itemActive: {
-    backgroundColor: '#185f37'
-  },
-  itemPressed: {
-    opacity: 0.82
-  }
-})

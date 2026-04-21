@@ -3,6 +3,7 @@ import { ActivityIndicator, View } from 'react-native'
 import { palette } from '@/constants/palette'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { useSession } from '@/providers/session-provider'
+import { indexScreenStyles as styles } from '@/styles/screens/index-screen'
 
 export default function IndexScreen() {
   const colorScheme = useColorScheme()
@@ -12,14 +13,7 @@ export default function IndexScreen() {
 
   if (!isReady) {
     return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: colors.background
-        }}
-      >
+      <View style={[styles.screen, { backgroundColor: colors.background }]}>
         <ActivityIndicator color={colors.accent} size="large" />
       </View>
     )

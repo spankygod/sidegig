@@ -4,7 +4,6 @@ import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import {
   ActivityIndicator,
   Pressable,
-  StyleSheet,
   Text,
   View
 } from 'react-native'
@@ -22,7 +21,6 @@ import { PrimaryButton } from '@/components/primary-button'
 import { TextField } from '@/components/text-field'
 import { palette } from '@/constants/palette'
 import { layout } from '@/constants/theme'
-import { textStyles } from '@/constants/typography'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { BackendError, createGigApplication, fetchMyApplications, fetchPublicGigById } from '@/lib/backend-client'
 import {
@@ -34,6 +32,7 @@ import {
   type PublicGig
 } from '@/lib/raket-types'
 import { useSession } from '@/providers/session-provider'
+import { publicGigDetailStyles as styles } from '@/styles/screens/public-gig-detail'
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message.trim() !== '') {
@@ -106,8 +105,8 @@ export default function PublicGigDetailScreen() {
   const [focusedField, setFocusedField] = React.useState<'intro' | 'availability' | null>(null)
 
   const isWorkerLocationReady = profile?.latitude != null && profile.longitude != null
-  const topInset = Math.max(insets.top + 8, 20)
-  const footerBottomPadding = Math.max(insets.bottom + 12, 20)
+  const topInset = Math.max(insets.top + layout.spacing.xs, layout.screenPadding)
+  const footerBottomPadding = Math.max(insets.bottom + layout.spacing.md, layout.screenPadding)
   const dragTranslateY = useSharedValue(0)
   const gestureStartedAtTop = useSharedValue(false)
   const scrollOffsetY = useSharedValue(0)
@@ -360,7 +359,7 @@ export default function PublicGigDetailScreen() {
           >
           {isLoading && gig == null
             ? (
-              <AppSurface mode={mode} padding={20}>
+              <AppSurface mode={mode} padding={layout.screenPadding}>
                 <View style={styles.stateContent}>
                   <ActivityIndicator color={colors.accent} size="large" />
                   <Text selectable style={[styles.stateTitle, { color: colors.text }]}>Loading gig</Text>
@@ -371,7 +370,7 @@ export default function PublicGigDetailScreen() {
 
           {loadError != null && gig == null
             ? (
-              <AppSurface mode={mode} padding={20}>
+              <AppSurface mode={mode} padding={layout.screenPadding}>
                 <Text selectable style={[styles.errorTitle, { color: colors.danger }]}>{loadError}</Text>
                 <PrimaryButton mode={mode} onPress={() => { void loadGig(false) }} variant="secondary">
                   Try again
@@ -391,7 +390,7 @@ export default function PublicGigDetailScreen() {
                         {posterInitials}
                       </Text>
                     </View>
-                    <View style={{ flex: 1, gap: 4 }}>
+                    <View style={styles.heroCopy}>
                       <Text selectable style={[styles.heroEyebrow, { color: colors.textMuted }]}>
                         {buildHeaderTagline(gig)}
                       </Text>
@@ -485,7 +484,7 @@ export default function PublicGigDetailScreen() {
                     <View style={[styles.posterAvatar, { backgroundColor: colors.text }]}>
                       <Text selectable style={styles.posterAvatarText}>{posterInitials}</Text>
                     </View>
-                    <View style={{ flex: 1, gap: 4 }}>
+                    <View style={styles.posterCopy}>
                       <Text selectable style={[styles.posterName, { color: colors.text }]}>
                         {gig.poster.displayName}
                       </Text>
@@ -657,237 +656,3 @@ export default function PublicGigDetailScreen() {
     </>
   )
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1
-  },
-  headerBar: {
-    borderBottomWidth: 1
-  },
-  headerRow: {
-    minHeight: 54,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: layout.screenPadding,
-    paddingBottom: 12
-  },
-  headerIconButton: {
-    width: layout.iconButtonSize,
-    height: layout.iconButtonSize,
-    borderRadius: layout.radius.md,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  headerTitle: {
-    fontSize: 17,
-    ...textStyles.title
-  },
-  headerIconSpacer: {
-    width: 36,
-    height: 36
-  },
-  scrollArea: {
-    flex: 1
-  },
-  contentContainer: {
-    paddingHorizontal: layout.screenPadding,
-    paddingTop: layout.sectionGap,
-    paddingBottom: layout.sectionGap,
-    gap: layout.sectionGap
-  },
-  centeredState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  stateContent: {
-    gap: 14,
-    alignItems: 'center'
-  },
-  stateTitle: {
-    fontSize: 18,
-    ...textStyles.title
-  },
-  errorTitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    ...textStyles.title
-  },
-  heroTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14
-  },
-  posterBadge: {
-    width: 54,
-    height: 54,
-    borderRadius: layout.radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  posterBadgeText: {
-    fontSize: 18,
-    ...textStyles.title
-  },
-  heroEyebrow: {
-    fontSize: 12,
-    ...textStyles.label,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4
-  },
-  heroTitle: {
-    fontSize: 26,
-    lineHeight: 31,
-    letterSpacing: -0.7,
-    ...textStyles.headline
-  },
-  heroMeta: {
-    fontSize: 14,
-    lineHeight: 19,
-    ...textStyles.bodyStrong
-  },
-  metricRow: {
-    flexDirection: 'row',
-    gap: 10
-  },
-  metricColumn: {
-    flex: 1,
-    gap: 4
-  },
-  metricValue: {
-    fontSize: 16,
-    lineHeight: 21,
-    ...textStyles.title
-  },
-  metricLabel: {
-    fontSize: 12,
-    ...textStyles.label
-  },
-  tagRow: {
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap'
-  },
-  inlineTag: {
-    minHeight: 32,
-    borderRadius: layout.radius.pill,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  inlineTagText: {
-    fontSize: 12,
-    ...textStyles.label
-  },
-  sectionTitle: {
-    fontSize: 20,
-    letterSpacing: -0.4,
-    ...textStyles.title
-  },
-  bodyText: {
-    fontSize: 14,
-    lineHeight: 21
-  },
-  detailStack: {
-    gap: 12
-  },
-  bulletRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10
-  },
-  bulletIcon: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 1
-  },
-  bulletText: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
-    ...textStyles.bodyStrong
-  },
-  infoPanel: {
-    borderRadius: layout.radius.xl,
-    padding: 14,
-    gap: 8
-  },
-  infoPanelTitle: {
-    fontSize: 14,
-    ...textStyles.title
-  },
-  infoPanelMeta: {
-    fontSize: 12,
-    ...textStyles.label
-  },
-  posterHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14
-  },
-  posterAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: layout.radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  posterAvatarText: {
-    color: '#ffffff',
-    fontSize: 18,
-    ...textStyles.title
-  },
-  posterName: {
-    fontSize: 18,
-    ...textStyles.title
-  },
-  posterSubline: {
-    fontSize: 14,
-    lineHeight: 20
-  },
-  posterMetricGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10
-  },
-  posterMetricCard: {
-    width: '48%',
-    borderRadius: layout.radius.lg,
-    borderWidth: 1,
-    padding: 14,
-    gap: 4
-  },
-  posterMetricValue: {
-    fontSize: 18,
-    ...textStyles.title
-  },
-  posterMetricLabel: {
-    fontSize: 12,
-    ...textStyles.label
-  },
-  feedbackCard: {
-    borderRadius: layout.radius.lg,
-    borderWidth: 1,
-    padding: 14
-  },
-  feedbackText: {
-    fontSize: 14,
-    lineHeight: 20,
-    ...textStyles.bodyStrong
-  },
-  footer: {
-    paddingHorizontal: layout.screenPadding,
-    paddingTop: 14,
-    borderTopWidth: 1
-  },
-  pressed: {
-    opacity: 0.88
-  }
-})

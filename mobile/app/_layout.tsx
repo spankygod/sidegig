@@ -11,6 +11,7 @@ import 'react-native-reanimated'
 import { palette } from '@/constants/palette'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { SessionProvider } from '@/providers/session-provider'
+import { rootLayoutStyles as styles } from '@/styles/screens/root-layout'
 
 export const unstable_settings = {
   anchor: '(tabs)'
@@ -57,7 +58,7 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={styles.root}>
       <SessionProvider>
         <ThemeProvider value={buildTheme(resolvedMode)}>
           <Stack

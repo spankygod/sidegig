@@ -1,5 +1,5 @@
 import React from 'react'
-import { RefreshControl, ScrollView, StyleSheet } from 'react-native'
+import { RefreshControl, ScrollView } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { FeedHomeHeader, type FeedHomeTab } from '@/components/feed/feed-home-header'
@@ -8,9 +8,9 @@ import { PostJobComposer } from '@/components/post-job-composer'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import { fetchPublicGigs } from '@/lib/backend-client'
 import { palette } from '@/constants/palette'
-import { layout } from '@/constants/theme'
 import { type GigCategory, type PublicGig, type UserProfile } from '@/lib/raket-types'
 import { useSession } from '@/providers/session-provider'
+import { feedScreenStyles as styles } from '@/styles/screens/feed-screen'
 
 const discoveryPageSize = 6
 
@@ -223,14 +223,3 @@ export default function FeedScreen() {
     </ScrollView>
   )
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1
-  },
-  contentContainer: {
-    paddingHorizontal: layout.screenPadding,
-    paddingBottom: layout.screenBottomPadding,
-    gap: layout.sectionGap
-  }
-})
