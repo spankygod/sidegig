@@ -1,24 +1,69 @@
 import { Feather, FontAwesome, Ionicons } from '@expo/vector-icons'
-import { Redirect } from 'expo-router'
 import React from 'react'
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import { GoogleMark } from '@/components/google-mark'
 import { useSession } from '@/providers/session-provider'
 import { signInScreenStyles as styles } from '@/styles/screens/sign-in-screen'
 
+function getPasswordVisibilityIconName(isPasswordVisible: boolean): 'eye' | 'eye-off' {
+  if (isPasswordVisible) {
+    return 'eye'
+  }
+
+  return 'eye-off'
+}
+
+function getRememberMeCheckboxStyle(rememberMe: boolean) {
+  if (rememberMe) {
+    return { borderColor: '#2458f4', backgroundColor: '#2458f4' }
+  }
+
+  return { borderColor: '#cfd6e3', backgroundColor: 'transparent' }
+}
+
+function getSignInMessageCardStyle(hasError: boolean) {
+  if (hasError) {
+    return { borderColor: '#fecaca', backgroundColor: '#fff5f5' }
+  }
+
+  return { borderColor: '#d6e4ff', backgroundColor: '#f4f8ff' }
+}
+
+function getSignInMessageTextColor(hasError: boolean): string {
+  if (hasError) {
+    return '#b42318'
+  }
+
+  return '#2458f4'
+}
+
 export default function SignInScreen() {
-  const { clearError, error, isReady, isSigningIn, session, signInWithGoogle } = useSession()
+  const { clearError, error, isSigningIn, signInWithGoogle } = useSession()
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
   const [isPasswordVisible, setIsPasswordVisible] = React.useState(false)
   const [rememberMe, setRememberMe] = React.useState(false)
   const [formMessage, setFormMessage] = React.useState<string | null>(null)
 
-  if (isReady && session != null) {
-    return <Redirect href="/(tabs)" />
-  }
-
   const surfaceMessage = error ?? formMessage
+  const passwordVisibilityIconName = getPasswordVisibilityIconName(isPasswordVisible)
+  const rememberMeCheckboxStyle = getRememberMeCheckboxStyle(rememberMe)
+  const hasAuthenticationError = error != null
+  const signInMessageCardStyle = getSignInMessageCardStyle(hasAuthenticationError)
+  const signInMessageTextColor = getSignInMessageTextColor(hasAuthenticationError)
+
+  let googleButtonContent = (
+    <>
+      <GoogleMark size={20} />
+      <Text selectable style={[styles.secondaryButtonText, { color: '#111827' }]}>
+        Continue with Google
+      </Text>
+    </>
+  )
+
+  if (isSigningIn) {
+    googleButtonContent = <ActivityIndicator color="#2458f4" />
+  }
 
   function resetInlineMessage() {
     clearError()
@@ -113,7 +158,7 @@ export default function SignInScreen() {
               }}
             >
               <Feather
-                name={isPasswordVisible ? 'eye' : 'eye-off'}
+                name={passwordVisibilityIconName}
                 size={18}
                 color="#9aa3b2"
               />
@@ -134,15 +179,10 @@ export default function SignInScreen() {
               <View
                 style={[
                   styles.checkbox,
-                  {
-                    borderColor: rememberMe ? '#2458f4' : '#cfd6e3',
-                    backgroundColor: rememberMe ? '#2458f4' : 'transparent'
-                  }
+                  rememberMeCheckboxStyle
                 ]}
               >
-                {rememberMe
-                  ? <Feather name="check" size={11} color="#ffffff" />
-                  : null}
+                {rememberMe && <Feather name="check" size={11} color="#ffffff" />}
               </View>
               <Text selectable style={[styles.utilityText, { color: '#6b7280' }]}>
                 Remember me
@@ -169,7 +209,7 @@ export default function SignInScreen() {
             style={[
               styles.primaryButton,
               { backgroundColor: '#2458f4' },
-              isSigningIn ? styles.primaryButtonDisabled : null
+              isSigningIn && styles.primaryButtonDisabled
             ]}
           >
             <Text selectable style={styles.primaryButtonText}>
@@ -195,21 +235,10 @@ export default function SignInScreen() {
             style={[
               styles.secondaryButton,
               { borderColor: '#edf0f5', backgroundColor: '#ffffff' },
-              isSigningIn ? styles.secondaryButtonDisabled : null
+              isSigningIn && styles.secondaryButtonDisabled
             ]}
           >
-            {isSigningIn
-              ? (
-                <ActivityIndicator color="#2458f4" />
-                )
-              : (
-                <>
-                  <GoogleMark size={20} />
-                  <Text selectable style={[styles.secondaryButtonText, { color: '#111827' }]}>
-                    Continue with Google
-                  </Text>
-                </>
-                )}
+            {googleButtonContent}
           </Pressable>
 
           <Pressable
@@ -221,7 +250,7 @@ export default function SignInScreen() {
             style={[
               styles.secondaryButton,
               { borderColor: '#edf0f5', backgroundColor: '#ffffff' },
-              isSigningIn ? styles.secondaryButtonDisabled : null
+              isSigningIn && styles.secondaryButtonDisabled
             ]}
           >
             <FontAwesome name="facebook" size={18} color="#1877f2" />
@@ -230,22 +259,18 @@ export default function SignInScreen() {
             </Text>
           </Pressable>
 
-          {surfaceMessage == null
-            ? null
-            : (
-              <View
-                style={[
-                  styles.messageCard,
-                  error == null
-                    ? { borderColor: '#d6e4ff', backgroundColor: '#f4f8ff' }
-                    : { borderColor: '#fecaca', backgroundColor: '#fff5f5' }
-                ]}
-              >
-                <Text selectable style={[styles.messageText, { color: error == null ? '#2458f4' : '#b42318' }]}>
-                  {surfaceMessage}
-                </Text>
-              </View>
-              )}
+          {surfaceMessage != null && (
+            <View
+              style={[
+                styles.messageCard,
+                signInMessageCardStyle
+              ]}
+            >
+              <Text selectable style={[styles.messageText, { color: signInMessageTextColor }]}>
+                {surfaceMessage}
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.footer}>

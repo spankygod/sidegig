@@ -6,6 +6,10 @@ export const signInScreenStyles = StyleSheet.create({
   screen: {
     flex: 1
   },
+  loadingScreen: {
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
   contentContainer: {
     flexGrow: 1,
     justifyContent: 'center',
