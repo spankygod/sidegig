@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import React from 'react'
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import {
   ActivityIndicator,
   Pressable,
@@ -16,7 +16,6 @@ import Animated, {
   withSpring
 } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { AppSurface } from '@/components/app-surface'
 import { PrimaryButton } from '@/components/primary-button'
 import { TextField } from '@/components/text-field'
 import { palette, resolvePaletteMode } from '@/constants/palette'
@@ -170,7 +169,6 @@ export default function PublicGigDetailScreen() {
   const [focusedField, setFocusedField] = React.useState<'intro' | 'availability' | null>(null)
 
   const isWorkerLocationReady = profile?.latitude != null && profile.longitude != null
-  const topInset = Math.max(insets.top + layout.spacing.xs, layout.screenPadding)
   const footerBottomPadding = Math.max(insets.bottom + layout.spacing.md, layout.screenPadding)
   const dragTranslateY = useSharedValue(0)
   const gestureStartedAtTop = useSharedValue(false)
@@ -209,11 +207,12 @@ export default function PublicGigDetailScreen() {
       .failOffsetX([-20, 20])
       .simultaneousWithExternalGesture(nativeScrollGesture)
       .onBegin(() => {
-        gestureStartedAtTop.value = scrollOffsetY.value <= 0
+        gestureStartedAtTop.value = scrollOffsetY.value <= 4
+        dragTranslateY.value = 0
       })
       .onUpdate((event) => {
         if (gestureStartedAtTop.value && event.translationY > 0) {
-          dragTranslateY.value = event.translationY
+          dragTranslateY.value = Math.min(event.translationY * 0.92, 220)
         }
       })
       .onEnd((event) => {
@@ -222,7 +221,7 @@ export default function PublicGigDetailScreen() {
           return
         }
 
-        if (dragTranslateY.value > 96 || event.velocityY > 900) {
+        if (dragTranslateY.value > 112 || event.velocityY > 1050) {
           runOnJS(closeScreen)()
           return
         }
@@ -339,38 +338,39 @@ export default function PublicGigDetailScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerShown: false,
-          presentation: 'modal',
-          animation: 'slide_from_bottom',
-          gestureEnabled: false,
-          contentStyle: {
-            backgroundColor: colors.background
-          }
-        }}
-      />
+      <View style={styles.modalRoot}>
+        <Pressable
+          accessibilityLabel="Close gig details"
+          accessibilityRole="button"
+          onPress={closeScreen}
+          style={[styles.backdrop, { backgroundColor: 'transparent' }]}
+        />
 
-      <GestureDetector gesture={dismissGesture}>
-        <Animated.View
-          style={[
-            styles.screen,
-            animatedScreenStyle,
-            {
-              backgroundColor: colors.background
-            }
-          ]}
-        >
-          <View
+        <GestureDetector gesture={dismissGesture}>
+          <Animated.View
             style={[
-              styles.headerBar,
+              styles.screen,
+              styles.sheet,
+              animatedScreenStyle,
               {
-                backgroundColor: colors.background,
-                borderBottomColor: colors.border,
-                paddingTop: topInset
+                backgroundColor: colors.background
               }
             ]}
           >
+            <View
+              style={[
+                styles.headerBar,
+                {
+                  backgroundColor: colors.background,
+                  borderBottomColor: colors.border,
+                  paddingTop: layout.spacing.sm
+                }
+              ]}
+            >
+            <View style={styles.headerHandleWrap}>
+              <View style={[styles.headerHandle, { backgroundColor: colors.border }]} />
+            </View>
+
             <View style={styles.headerRow}>
               <Pressable
                 accessibilityRole="button"
@@ -378,8 +378,7 @@ export default function PublicGigDetailScreen() {
                 style={({ pressed }) => [
                   styles.headerIconButton,
                   {
-                    backgroundColor: colors.surfaceMuted,
-                    borderColor: colors.border
+                    backgroundColor: colors.surfaceMuted
                   },
                   pressed && styles.pressed
                 ]}
@@ -407,26 +406,28 @@ export default function PublicGigDetailScreen() {
               style={styles.scrollArea}
             >
               {shouldShowLoadingState && (
-                <AppSurface mode={mode} padding={layout.screenPadding}>
+                <View style={styles.centeredState}>
                   <View style={styles.stateContent}>
                     <ActivityIndicator color={colors.accent} size="large" />
                     <Text selectable style={[styles.stateTitle, { color: colors.text }]}>Loading gig</Text>
                   </View>
-                </AppSurface>
+                </View>
               )}
 
               {shouldShowLoadError && (
-                <AppSurface mode={mode} padding={layout.screenPadding}>
+                <View style={styles.centeredState}>
+                  <View style={styles.stateContent}>
                   <Text selectable style={[styles.errorTitle, { color: colors.danger }]}>{loadError}</Text>
-                  <PrimaryButton mode={mode} onPress={() => { void loadGig() }} variant="secondary">
-                    Try again
-                  </PrimaryButton>
-                </AppSurface>
+                    <PrimaryButton mode={mode} onPress={() => { void loadGig() }} variant="secondary">
+                      Try again
+                    </PrimaryButton>
+                  </View>
+                </View>
               )}
 
               {gig != null && (
                 <>
-                  <AppSurface mode={mode}>
+                  <View style={styles.heroSection}>
                       <View style={styles.heroTopRow}>
                         <View style={[styles.posterBadge, { backgroundColor: colors.accentSoft }]}>
                           <Text selectable style={[styles.posterBadgeText, { color: colors.accent }]}>
@@ -446,13 +447,26 @@ export default function PublicGigDetailScreen() {
                         </View>
                       </View>
 
-                      <View style={styles.metricRow}>
+                      <View
+                        style={[
+                          styles.metricStrip
+                        ]}
+                      >
                         {[
                           { label: 'Budget', value: formatPhpAmount(gig.priceAmount) },
                           { label: 'Timeline', value: formatDurationBucket(gig.durationBucket) },
                           { label: 'Reach', value: `${gig.applicationRadiusKm} km` }
-                        ].map((item) => (
-                          <View key={item.label} style={styles.metricColumn}>
+                        ].map((item, index) => (
+                          <View
+                            key={item.label}
+                            style={[
+                              styles.metricColumn,
+                              index < 2 && {
+                                borderRightWidth: 1,
+                                borderRightColor: colors.border
+                              }
+                            ]}
+                          >
                             <Text selectable style={[styles.metricValue, { color: colors.text }]}>
                               {item.value}
                             </Text>
@@ -485,9 +499,9 @@ export default function PublicGigDetailScreen() {
                           </View>
                         ))}
                       </View>
-                    </AppSurface>
+                    </View>
 
-                    <AppSurface mode={mode}>
+                    <View style={[styles.section, { borderTopColor: colors.border }]}>
                       <Text selectable style={[styles.sectionTitle, { color: colors.text }]}>About this role</Text>
                       <Text selectable style={[styles.bodyText, { color: colors.textMuted }]}>
                         {gig.description}
@@ -506,18 +520,34 @@ export default function PublicGigDetailScreen() {
                         ))}
                       </View>
 
-                      <View style={[styles.infoPanel, { backgroundColor: colors.surfaceMuted }]}>
-                        <Text selectable style={[styles.infoPanelTitle, { color: colors.text }]}>Schedule</Text>
-                        <Text selectable style={[styles.bodyText, { color: colors.textMuted }]}>
-                          {gig.scheduleSummary}
-                        </Text>
-                        <Text selectable style={[styles.infoPanelMeta, { color: colors.textMuted }]}>
-                          Posted {formatGigTimestamp(gig.createdAt)}
-                        </Text>
+                      <View style={styles.metaList}>
+                        {[
+                          { icon: 'calendar-outline', label: 'Schedule', value: gig.scheduleSummary },
+                          { icon: 'time-outline', label: 'Posted', value: formatGigTimestamp(gig.createdAt) }
+                        ].map((item, index) => (
+                          <View
+                            key={item.label}
+                            style={[
+                              styles.metaRow,
+                              index > 0 && {
+                                borderTopWidth: 1,
+                                borderTopColor: colors.border
+                              }
+                            ]}
+                          >
+                            <View style={[styles.metaIconWrap, { backgroundColor: colors.surfaceMuted }]}>
+                              <Ionicons color={colors.textMuted} name={item.icon as 'calendar-outline' | 'time-outline'} size={16} />
+                            </View>
+                            <View style={styles.metaCopy}>
+                              <Text selectable style={[styles.metaLabel, { color: colors.textMuted }]}>{item.label}</Text>
+                              <Text selectable style={[styles.metaValue, { color: colors.text }]}>{item.value}</Text>
+                            </View>
+                          </View>
+                        ))}
                       </View>
-                    </AppSurface>
+                    </View>
 
-                    <AppSurface mode={mode}>
+                    <View style={[styles.section, { borderTopColor: colors.border }]}>
                       <Text selectable style={[styles.sectionTitle, { color: colors.text }]}>Poster credibility</Text>
                       <Text selectable style={[styles.bodyText, { color: colors.textMuted }]}>
                         These trust signals come directly from the poster profile connected to this gig.
@@ -537,7 +567,7 @@ export default function PublicGigDetailScreen() {
                         </View>
                       </View>
 
-                      <View style={styles.posterMetricGrid}>
+                      <View style={styles.posterMetricList}>
                         {[
                           { label: 'Rating', value: gig.poster.rating.toFixed(1) },
                           { label: 'Reviews', value: String(gig.poster.reviewCount) },
@@ -545,29 +575,29 @@ export default function PublicGigDetailScreen() {
                           { label: 'Jobs posted', value: String(gig.poster.gigsPosted) },
                           { label: 'Hires funded', value: String(gig.poster.hiresFunded) },
                           { label: 'Completed', value: String(gig.poster.hiresCompleted) }
-                        ].map((item) => (
+                        ].map((item, index) => (
                           <View
                             key={item.label}
                             style={[
-                              styles.posterMetricCard,
-                              {
-                                backgroundColor: colors.surfaceMuted,
-                                borderColor: colors.border
+                              styles.posterMetricRow,
+                              index > 0 && {
+                                borderTopWidth: 1,
+                                borderTopColor: colors.border
                               }
                             ]}
                           >
-                            <Text selectable style={[styles.posterMetricValue, { color: colors.text }]}>
-                              {item.value}
-                            </Text>
                             <Text selectable style={[styles.posterMetricLabel, { color: colors.textMuted }]}>
                               {item.label}
+                            </Text>
+                            <Text selectable style={[styles.posterMetricValue, { color: colors.text }]}>
+                              {item.value}
                             </Text>
                           </View>
                         ))}
                       </View>
-                    </AppSurface>
+                    </View>
 
-                    <AppSurface mode={mode}>
+                    <View style={[styles.section, { borderTopColor: colors.border }]}>
                       <Text selectable style={[styles.sectionTitle, { color: colors.text }]}>Apply for this gig</Text>
                       <Text selectable style={[styles.bodyText, { color: colors.textMuted }]}>
                         Send a short intro and your availability so the poster can review your fit quickly.
@@ -576,7 +606,7 @@ export default function PublicGigDetailScreen() {
                       {applicationFeedback != null && (
                         <View
                           style={[
-                            styles.feedbackCard,
+                            styles.feedbackBanner,
                             {
                               backgroundColor: colors.accentSoft,
                               borderColor: colors.success
@@ -592,7 +622,7 @@ export default function PublicGigDetailScreen() {
                       {applyError != null && (
                         <View
                           style={[
-                            styles.feedbackCard,
+                            styles.feedbackBanner,
                             {
                               backgroundColor: colors.surfaceMuted,
                               borderColor: colors.danger
@@ -608,7 +638,7 @@ export default function PublicGigDetailScreen() {
                       {!isWorkerLocationReady && (
                         <View
                           style={[
-                            styles.feedbackCard,
+                            styles.feedbackBanner,
                             {
                               backgroundColor: colors.surfaceMuted,
                               borderColor: colors.warning
@@ -659,7 +689,7 @@ export default function PublicGigDetailScreen() {
                         placeholder="Tomorrow after 2 PM, or Saturday morning."
                         value={availability}
                       />
-                    </AppSurface>
+                    </View>
                 </>
               )}
             </Animated.ScrollView>
@@ -686,8 +716,9 @@ export default function PublicGigDetailScreen() {
               </PrimaryButton>
             </View>
           )}
-        </Animated.View>
-      </GestureDetector>
+          </Animated.View>
+        </GestureDetector>
+      </View>
     </>
   )
 }

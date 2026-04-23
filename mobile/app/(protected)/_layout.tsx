@@ -1,9 +1,14 @@
-import { Redirect, Slot } from 'expo-router'
+import { Redirect, Stack } from 'expo-router'
+import { palette, resolvePaletteMode } from '@/constants/palette'
+import { useColorScheme } from '@/hooks/use-color-scheme'
 import { SessionRouteLoader } from '@/components/session-route-loader'
 import { useSession } from '@/providers/session-provider'
 
 export default function ProtectedLayout() {
   const { isRouteReady, needsOnboarding, session } = useSession()
+  const colorScheme = useColorScheme()
+  const mode = resolvePaletteMode(colorScheme)
+  const colors = palette[mode]
 
   if (!isRouteReady) {
     return <SessionRouteLoader />
@@ -17,5 +22,28 @@ export default function ProtectedLayout() {
     return <Redirect href="/onboarding" />
   }
 
-  return <Slot />
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: {
+          backgroundColor: colors.background
+        }
+      }}
+    >
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="gigs/[gigId]"
+        options={{
+          headerShown: false,
+          presentation: 'containedTransparentModal',
+          animation: 'slide_from_bottom',
+          gestureEnabled: false,
+          contentStyle: {
+            backgroundColor: 'transparent'
+          }
+        }}
+      />
+    </Stack>
+  )
 }

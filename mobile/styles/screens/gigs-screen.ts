@@ -7,8 +7,17 @@ export const gigsScreenStyles = StyleSheet.create({
     flex: 1
   },
   contentContainer: {
-    padding: layout.screenPadding,
+    paddingHorizontal: layout.screenPadding,
+    paddingBottom: layout.screenBottomPadding,
     gap: layout.sectionGap
+  },
+  screenHeader: {
+    paddingBottom: 4
+  },
+  screenTitle: {
+    fontSize: 30,
+    lineHeight: 36,
+    ...textStyles.headline
   },
   heroEyebrow: {
     fontSize: 14,

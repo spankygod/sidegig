@@ -71,6 +71,9 @@ export const findGigHomeViewStyles = StyleSheet.create({
     padding: 18,
     gap: 16
   },
+  discoverySkeletonCard: {
+    borderWidth: 1
+  },
   discoveryCardTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -143,6 +146,9 @@ export const findGigHomeViewStyles = StyleSheet.create({
     fontSize: 13,
     ...textStyles.label,
     paddingHorizontal: 4
+  },
+  paginationSkeleton: {
+    marginLeft: 4
   },
   metricsStrip: {
     flexDirection: 'row',

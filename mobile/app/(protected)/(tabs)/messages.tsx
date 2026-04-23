@@ -604,7 +604,7 @@ export default function MessagesScreen() {
           {
             backgroundColor: colors.background,
             borderBottomColor: colors.border,
-            paddingTop: Math.max(insets.top + 8, 18)
+            paddingTop: Math.max(insets.top + 8, 18) + 14
           }
         ]}
       >

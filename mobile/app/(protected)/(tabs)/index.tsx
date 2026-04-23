@@ -1,5 +1,5 @@
 import React from 'react'
-import { RefreshControl, ScrollView } from 'react-native'
+import { RefreshControl, ScrollView, Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { FeedHomeHeader, type FeedHomeTab } from '@/components/feed/feed-home-header'
@@ -234,11 +234,11 @@ export default function FeedScreen() {
 
   return (
     <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
+      contentInsetAdjustmentBehavior="never"
       contentContainerStyle={[
         styles.contentContainer,
         {
-          paddingTop: Math.max(insets.top + 10, 28)
+          paddingTop: 0
         }
       ]}
       nestedScrollEnabled
@@ -253,6 +253,19 @@ export default function FeedScreen() {
       showsVerticalScrollIndicator={false}
       style={[styles.screen, { backgroundColor: colors.background }]}
     >
+      <View
+        style={[
+          styles.screenHeader,
+          {
+            paddingTop: Math.max(insets.top + 8, 18) + 14
+          }
+        ]}
+      >
+        <Text selectable style={[styles.screenTitle, { color: colors.text }]}>
+          Discover
+        </Text>
+      </View>
+
       {screenContent}
     </ScrollView>
   )

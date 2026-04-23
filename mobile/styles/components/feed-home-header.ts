@@ -13,11 +13,12 @@ export const feedHomeHeaderStyles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12
   },
-  appBarTitle: {
-    fontSize: 13,
-    ...textStyles.label,
-    letterSpacing: 0.2,
-    textTransform: 'capitalize'
+  appBarHeadline: {
+    flex: 1,
+    fontSize: 22,
+    ...textStyles.headline,
+    lineHeight: 26,
+    letterSpacing: -0.5
   },
   heroTitle: {
     fontSize: 28,

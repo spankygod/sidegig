@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router'
 import { ScrollView, Text, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AppSurface } from '@/components/app-surface'
 import { GigsScreenSkeleton } from '@/components/loading/gigs-screen-skeleton'
 import { PrimaryButton } from '@/components/primary-button'
@@ -38,6 +39,7 @@ function getRefreshButtonLabel(isRefreshing: boolean): string {
 
 export default function GigsScreen() {
   const router = useRouter()
+  const insets = useSafeAreaInsets()
   const colorScheme = useColorScheme()
   const mode = resolvePaletteMode(colorScheme)
   const colors = palette[mode]
@@ -99,7 +101,7 @@ export default function GigsScreen() {
   if (isInitialGigsLoading) {
     return (
       <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
+        contentInsetAdjustmentBehavior="never"
         contentContainerStyle={styles.contentContainer}
         style={[styles.screen, { backgroundColor: colors.background }]}
       >
@@ -110,10 +112,23 @@ export default function GigsScreen() {
 
   return (
     <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
+      contentInsetAdjustmentBehavior="never"
       contentContainerStyle={styles.contentContainer}
       style={[styles.screen, { backgroundColor: colors.background }]}
     >
+      <View
+        style={[
+          styles.screenHeader,
+          {
+            paddingTop: Math.max(insets.top + 8, 18) + 14
+          }
+        ]}
+      >
+        <Text selectable style={[styles.screenTitle, { color: colors.text }]}>
+          Gigs
+        </Text>
+      </View>
+
       <AppSurface mode={mode}>
         <Text selectable style={[styles.heroEyebrow, { color: colors.textMuted }]}>
           Welcome back

@@ -8,9 +8,16 @@ export const profileScreenStyles = StyleSheet.create({
   },
   contentContainer: {
     paddingHorizontal: layout.screenPadding,
-    paddingTop: 14,
     paddingBottom: layout.screenBottomPadding,
     gap: layout.sectionGap
+  },
+  screenHeader: {
+    paddingBottom: 4
+  },
+  screenTitle: {
+    fontSize: 30,
+    lineHeight: 36,
+    ...textStyles.headline
   },
   heroCard: {
     borderWidth: 1,

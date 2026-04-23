@@ -185,6 +185,7 @@ export default function TabLayout() {
         name="gigs"
         options={{
           title: 'Gigs',
+          headerShown: false,
           tabBarIcon: ({ color, focused, size }) => (
             <Ionicons color={color} name={getGigsTabIconName(focused)} size={size} />
           )
@@ -204,6 +205,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profile',
+          headerShown: false,
           tabBarIcon: ({ color, focused, size }) => (
             <Ionicons color={color} name={getProfileTabIconName(focused)} size={size} />
           )

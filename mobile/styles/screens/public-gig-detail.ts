@@ -3,11 +3,35 @@ import { layout } from '@/constants/theme'
 import { textStyles } from '@/constants/typography'
 
 export const publicGigDetailStyles = StyleSheet.create({
+  modalRoot: {
+    flex: 1,
+    justifyContent: 'flex-end'
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject
+  },
   screen: {
     flex: 1
   },
+  sheet: {
+    flex: 0,
+    width: '100%',
+    height: '80%',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: 'hidden'
+  },
   headerBar: {
     borderBottomWidth: 1
+  },
+  headerHandleWrap: {
+    alignItems: 'center',
+    paddingBottom: layout.spacing.xs
+  },
+  headerHandle: {
+    width: 38,
+    height: 5,
+    borderRadius: layout.radius.pill
   },
   headerRow: {
     minHeight: layout.inputHeight + layout.spacing.xxs,
@@ -18,10 +42,9 @@ export const publicGigDetailStyles = StyleSheet.create({
     paddingBottom: layout.spacing.md
   },
   headerIconButton: {
-    width: layout.iconButtonSize,
-    height: layout.iconButtonSize,
-    borderRadius: layout.radius.md,
-    borderWidth: 1,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center'
   },
@@ -37,19 +60,18 @@ export const publicGigDetailStyles = StyleSheet.create({
     flex: 1
   },
   contentContainer: {
-    paddingHorizontal: layout.screenPadding,
-    paddingTop: layout.sectionGap,
-    paddingBottom: layout.sectionGap,
-    gap: layout.sectionGap
+    paddingBottom: layout.sectionGap * 2
   },
   centeredState: {
-    flex: 1,
+    minHeight: 360,
+    paddingHorizontal: layout.screenPadding,
     alignItems: 'center',
     justifyContent: 'center'
   },
   stateContent: {
     gap: layout.spacing.lg,
-    alignItems: 'center'
+    alignItems: 'center',
+    width: '100%'
   },
   stateTitle: {
     fontSize: 18,
@@ -58,7 +80,14 @@ export const publicGigDetailStyles = StyleSheet.create({
   errorTitle: {
     fontSize: 15,
     lineHeight: 22,
-    ...textStyles.title
+    ...textStyles.title,
+    textAlign: 'center'
+  },
+  heroSection: {
+    paddingHorizontal: layout.screenPadding,
+    paddingTop: layout.sectionGap + layout.spacing.xs,
+    paddingBottom: layout.sectionGap,
+    gap: layout.spacing.xl
   },
   heroTopRow: {
     flexDirection: 'row',
@@ -97,13 +126,18 @@ export const publicGigDetailStyles = StyleSheet.create({
     lineHeight: 19,
     ...textStyles.bodyStrong
   },
+  metricStrip: {
+    flexDirection: 'row',
+    alignItems: 'flex-start'
+  },
   metricRow: {
     flexDirection: 'row',
     gap: layout.spacing.sm
   },
   metricColumn: {
     flex: 1,
-    gap: layout.spacing.xxs
+    gap: layout.spacing.xxs,
+    paddingRight: layout.spacing.md
   },
   metricValue: {
     fontSize: 16,
@@ -130,6 +164,13 @@ export const publicGigDetailStyles = StyleSheet.create({
   inlineTagText: {
     fontSize: 12,
     ...textStyles.label
+  },
+  section: {
+    paddingHorizontal: layout.screenPadding,
+    paddingTop: layout.sectionGap,
+    paddingBottom: layout.sectionGap,
+    gap: layout.spacing.lg,
+    borderTopWidth: 1
   },
   sectionTitle: {
     fontSize: 20,
@@ -162,18 +203,34 @@ export const publicGigDetailStyles = StyleSheet.create({
     lineHeight: 20,
     ...textStyles.bodyStrong
   },
-  infoPanel: {
-    borderRadius: layout.radius.xl,
-    padding: layout.spacing.lg,
-    gap: layout.spacing.xs
+  metaList: {
+    gap: 0
   },
-  infoPanelTitle: {
-    fontSize: 14,
-    ...textStyles.title
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: layout.spacing.md,
+    paddingVertical: layout.spacing.md
   },
-  infoPanelMeta: {
+  metaIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  metaCopy: {
+    flex: 1,
+    gap: 3
+  },
+  metaLabel: {
     fontSize: 12,
     ...textStyles.label
+  },
+  metaValue: {
+    fontSize: 15,
+    lineHeight: 21,
+    ...textStyles.bodyStrong
   },
   posterHeader: {
     flexDirection: 'row',
@@ -204,30 +261,32 @@ export const publicGigDetailStyles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20
   },
-  posterMetricGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: layout.spacing.sm
+  posterMetricList: {
+    gap: 0
   },
-  posterMetricCard: {
-    width: '48%',
-    borderRadius: layout.radius.lg,
-    borderWidth: 1,
-    padding: layout.spacing.lg,
-    gap: layout.spacing.xxs
+  posterMetricRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: layout.spacing.md,
+    paddingVertical: layout.spacing.md
   },
   posterMetricValue: {
     fontSize: 18,
-    ...textStyles.title
+    ...textStyles.title,
+    textAlign: 'right'
   },
   posterMetricLabel: {
-    fontSize: 12,
-    ...textStyles.label
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+    ...textStyles.bodyStrong
   },
-  feedbackCard: {
+  feedbackBanner: {
     borderRadius: layout.radius.lg,
     borderWidth: 1,
-    padding: layout.spacing.lg
+    paddingHorizontal: layout.spacing.lg,
+    paddingVertical: layout.spacing.md
   },
   feedbackText: {
     fontSize: 14,

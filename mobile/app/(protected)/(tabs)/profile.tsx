@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
 import React from 'react'
 import { ScrollView, Text, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { OptionChip } from '@/components/option-chip'
 import { ProfileScreenSkeleton } from '@/components/loading/profile-screen-skeleton'
 import { PrimaryButton } from '@/components/primary-button'
@@ -156,6 +157,7 @@ function toNullableText(value: string): string | null {
 }
 
 export default function ProfileScreen() {
+  const insets = useSafeAreaInsets()
   const colorScheme = useColorScheme()
   const mode = resolvePaletteMode(colorScheme)
   const colors = palette[mode]
@@ -370,7 +372,7 @@ export default function ProfileScreen() {
   if (isInitialProfileLoading) {
     return (
       <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
+        contentInsetAdjustmentBehavior="never"
         contentContainerStyle={styles.contentContainer}
         style={[styles.screen, { backgroundColor: colors.background }]}
       >
@@ -382,7 +384,7 @@ export default function ProfileScreen() {
   if (profile == null) {
     return (
       <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
+        contentInsetAdjustmentBehavior="never"
         contentContainerStyle={styles.contentContainer}
         style={[styles.screen, { backgroundColor: colors.background }]}
       >
@@ -468,11 +470,24 @@ export default function ProfileScreen() {
   return (
     <>
       <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
+        contentInsetAdjustmentBehavior="never"
         contentContainerStyle={styles.contentContainer}
         keyboardShouldPersistTaps="handled"
         style={[styles.screen, { backgroundColor: colors.background }]}
       >
+        <View
+          style={[
+            styles.screenHeader,
+            {
+              paddingTop: Math.max(insets.top + 8, 18) + 14
+            }
+          ]}
+        >
+          <Text selectable style={[styles.screenTitle, { color: colors.text }]}>
+            Profile
+          </Text>
+        </View>
+
         <View style={[styles.heroCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.heroTopRow}>
             {avatarUrl != null

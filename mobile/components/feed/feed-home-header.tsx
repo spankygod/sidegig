@@ -31,8 +31,8 @@ export function FeedHomeHeader({
     <>
       <View style={styles.heroBlock}>
         <View style={styles.appBar}>
-          <Text selectable style={[styles.appBarTitle, { color: colors.textMuted }]}>
-            Discover jobs
+          <Text selectable numberOfLines={1} style={[styles.appBarHeadline, { color: colors.text }]}>
+            Gigs around you.
           </Text>
           <Pressable
             accessibilityRole="button"
@@ -49,10 +49,6 @@ export function FeedHomeHeader({
             <Ionicons color={colors.text} name={isRefreshing ? 'sync' : 'refresh-outline'} size={18} />
           </Pressable>
         </View>
-
-        <Text selectable style={[styles.heroTitle, { color: colors.text }]}>
-          Search jobs around you.
-        </Text>
 
         <Text selectable style={[styles.heroSubtitle, { color: colors.textMuted }]}>
           Browse nearby roles, filter fast, and jump into the ones that fit.

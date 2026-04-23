@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { FlatList, Pressable, Text, View, useWindowDimensions } from 'react-native'
+import { SkeletonBlock } from '@/components/loading/skeleton-block'
 import type { PaletteMode } from '@/constants/palette'
 import { palette } from '@/constants/palette'
 import { layout } from '@/constants/theme'
@@ -39,6 +40,11 @@ type DiscoveryGigCarouselCardProps = {
   gig: PublicGig
   index: number
   onOpenGig: (gigId: string) => void
+}
+
+type DiscoveryGigCarouselSkeletonProps = {
+  cardWidth: number
+  mode?: PaletteMode
 }
 
 const discoveryCarouselTones = [
@@ -175,6 +181,51 @@ function DiscoveryGigCarouselCard({ cardWidth, gig, index, onOpenGig }: Discover
   )
 }
 
+function DiscoveryGigCarouselSkeleton({ cardWidth, mode }: DiscoveryGigCarouselSkeletonProps) {
+  const colors = palette[mode ?? 'light']
+
+  return (
+    <View
+      style={[
+        styles.discoveryCarouselCard,
+        styles.discoverySkeletonCard,
+        {
+          width: cardWidth,
+          backgroundColor: colors.surface,
+          borderColor: colors.border
+        }
+      ]}
+    >
+      <View style={styles.discoveryCardTopRow}>
+        <SkeletonBlock height={32} mode={mode} radius={16} width={92} />
+        <SkeletonBlock height={34} mode={mode} radius={12} width={34} />
+      </View>
+
+      <View style={styles.carouselContent}>
+        <SkeletonBlock height={28} mode={mode} radius={12} width="84%" />
+        <SkeletonBlock height={28} mode={mode} radius={12} width="62%" />
+        <SkeletonBlock height={18} mode={mode} radius={9} width="58%" />
+      </View>
+
+      <View style={styles.carouselMetricsRow}>
+        {[0, 1, 2].map((metric) => (
+          <View key={metric} style={styles.carouselMetric}>
+            <SkeletonBlock height={18} mode={mode} radius={9} width="78%" />
+            <SkeletonBlock height={12} mode={mode} radius={6} width="52%" />
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.discoveryFooter}>
+        <View style={styles.discoveryPillRow}>
+          <SkeletonBlock height={30} mode={mode} radius={999} width={110} />
+          <SkeletonBlock height={30} mode={mode} radius={999} width={146} />
+        </View>
+      </View>
+    </View>
+  )
+}
+
 export function FindGigHomeView({
   discoveryError,
   discoveryGigs,
@@ -217,12 +268,20 @@ export function FindGigHomeView({
 
       {isDiscoveryLoading && discoveryGigs.length === 0
         ? (
-          <View style={styles.emptyStateCard}>
-            <Text selectable style={[styles.emptyStateTitle, { color: colors.text }]}>Finding gigs</Text>
-            <Text selectable style={[styles.emptyStateBody, { color: colors.textMuted }]}>
-              Loading published jobs for your marketplace feed.
-            </Text>
-          </View>
+          <>
+            <FlatList
+              data={[0, 1, 2]}
+              contentContainerStyle={styles.discoveryCarousel}
+              horizontal
+              ItemSeparatorComponent={() => <View style={styles.discoveryCarouselSeparator} />}
+              keyExtractor={(item) => item.toString()}
+              renderItem={() => <DiscoveryGigCarouselSkeleton cardWidth={cardWidth} mode={mode} />}
+              scrollEnabled={false}
+              showsHorizontalScrollIndicator={false}
+            />
+
+            <SkeletonBlock height={14} mode={mode} radius={7} style={styles.paginationSkeleton} width={104} />
+          </>
           )
         : discoveryGigs.length === 0
           ? (
@@ -267,10 +326,6 @@ export function FindGigHomeView({
                 snapToInterval={carouselSnapWidth}
                 windowSize={5}
               />
-
-              <Text selectable style={[styles.paginationText, { color: colors.textMuted }]}>
-                Page {discoveryPage + 1} of {discoveryPageCount}
-              </Text>
             </>
             )}
 
