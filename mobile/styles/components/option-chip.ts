@@ -1,3 +1,4 @@
+import type { StyleProp, TextStyle, ViewStyle } from 'react-native'
 import { StyleSheet } from 'react-native'
 import { layout } from '@/constants/theme'
 import { textStyles } from '@/constants/typography'
@@ -23,7 +24,11 @@ export const optionChipStyles = StyleSheet.create({
   }
 })
 
-export function buildOptionChipStyle(colors: OptionChipColors, selected: boolean, pressed: boolean) {
+export function buildOptionChipStyle(
+  colors: OptionChipColors,
+  selected: boolean,
+  pressed: boolean
+): StyleProp<ViewStyle> {
   return [
     optionChipStyles.chip,
     {
@@ -31,14 +36,14 @@ export function buildOptionChipStyle(colors: OptionChipColors, selected: boolean
       backgroundColor: selected ? colors.accentSoft : colors.surface,
       opacity: pressed ? 0.85 : 1
     }
-  ] as const
+  ]
 }
 
-export function buildOptionChipLabelStyle(colors: OptionChipColors, selected: boolean) {
+export function buildOptionChipLabelStyle(colors: OptionChipColors, selected: boolean): StyleProp<TextStyle> {
   return [
     optionChipStyles.label,
     {
       color: selected ? colors.accent : colors.text
     }
-  ] as const
+  ]
 }

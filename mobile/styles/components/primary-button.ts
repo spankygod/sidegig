@@ -1,3 +1,4 @@
+import type { StyleProp, TextStyle, ViewStyle } from 'react-native'
 import { StyleSheet } from 'react-native'
 import { layout } from '@/constants/theme'
 import { textStyles } from '@/constants/typography'
@@ -32,7 +33,7 @@ export function buildPrimaryButtonStyle(
     isSecondary: boolean
     pressed: boolean
   }
-) {
+): StyleProp<ViewStyle> {
   const { isDisabled, isSecondary, pressed } = options
 
   return [
@@ -45,14 +46,17 @@ export function buildPrimaryButtonStyle(
         ? '0 4px 14px rgba(15, 118, 110, 0.15)'
         : '0 8px 20px rgba(15, 118, 110, 0.12)'
     }
-  ] as const
+  ]
 }
 
-export function buildPrimaryButtonTextStyle(colors: PrimaryButtonColors, isSecondary: boolean) {
+export function buildPrimaryButtonTextStyle(
+  colors: PrimaryButtonColors,
+  isSecondary: boolean
+): StyleProp<TextStyle> {
   return [
     styles.text,
     {
       color: isSecondary ? colors.text : '#ffffff'
     }
-  ] as const
+  ]
 }

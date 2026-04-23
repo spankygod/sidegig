@@ -1,3 +1,4 @@
+import type { StyleProp, ViewStyle } from 'react-native'
 import { StyleSheet } from 'react-native'
 import { layout } from '@/constants/theme'
 
@@ -16,7 +17,7 @@ const styles = StyleSheet.create({
   }
 })
 
-export function buildAppSurfaceStyle(colors: AppSurfaceColors, padding: number) {
+export function buildAppSurfaceStyle(colors: AppSurfaceColors, padding: number): StyleProp<ViewStyle> {
   return [
     styles.container,
     {
@@ -24,5 +25,5 @@ export function buildAppSurfaceStyle(colors: AppSurfaceColors, padding: number) 
       backgroundColor: colors.surface,
       padding
     }
-  ] as const
+  ]
 }

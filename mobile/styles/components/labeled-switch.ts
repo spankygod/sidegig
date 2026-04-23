@@ -1,3 +1,4 @@
+import type { StyleProp, TextStyle } from 'react-native'
 import { StyleSheet } from 'react-native'
 import { layout } from '@/constants/theme'
 import { textStyles } from '@/constants/typography'
@@ -28,16 +29,16 @@ export const labeledSwitchStyles = StyleSheet.create({
   }
 })
 
-export function buildLabeledSwitchLabelStyle(colors: LabeledSwitchColors) {
+export function buildLabeledSwitchLabelStyle(colors: LabeledSwitchColors): StyleProp<TextStyle> {
   return [
     labeledSwitchStyles.label,
     { color: colors.text }
-  ] as const
+  ]
 }
 
-export function buildLabeledSwitchDescriptionStyle(colors: LabeledSwitchColors) {
+export function buildLabeledSwitchDescriptionStyle(colors: LabeledSwitchColors): StyleProp<TextStyle> {
   return [
     labeledSwitchStyles.description,
     { color: colors.textMuted }
-  ] as const
+  ]
 }

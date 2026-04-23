@@ -1,3 +1,4 @@
+import type { StyleProp, TextStyle } from 'react-native'
 import { StyleSheet } from 'react-native'
 import { layout } from '@/constants/theme'
 import { textStyles } from '@/constants/typography'
@@ -30,16 +31,16 @@ export const textFieldStyles = StyleSheet.create({
   }
 })
 
-export function buildTextFieldLabelStyle(colors: TextFieldColors) {
+export function buildTextFieldLabelStyle(colors: TextFieldColors): StyleProp<TextStyle> {
   return [
     textFieldStyles.label,
     {
       color: colors.text
     }
-  ] as const
+  ]
 }
 
-export function buildTextFieldInputStyle(colors: TextFieldColors, multiline: boolean) {
+export function buildTextFieldInputStyle(colors: TextFieldColors, multiline: boolean): StyleProp<TextStyle> {
   return [
     textFieldStyles.input,
     {
@@ -50,5 +51,5 @@ export function buildTextFieldInputStyle(colors: TextFieldColors, multiline: boo
       paddingVertical: multiline ? 14 : 12
     },
     multiline ? textFieldStyles.multilineInput : null
-  ] as const
+  ]
 }
