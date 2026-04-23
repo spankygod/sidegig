@@ -61,8 +61,10 @@ export const findGigHomeViewStyles = StyleSheet.create({
     fontFamily: textStyles.label.fontFamily
   },
   discoveryCarousel: {
-    gap: 14,
     paddingRight: 6
+  },
+  discoveryCarouselSeparator: {
+    width: 14
   },
   discoveryCarouselCard: {
     borderRadius: 28,

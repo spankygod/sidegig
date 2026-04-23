@@ -1,12 +1,12 @@
 import { Ionicons } from '@expo/vector-icons'
-import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native'
+import { FlatList, Pressable, Text, View, useWindowDimensions } from 'react-native'
 import type { PaletteMode } from '@/constants/palette'
 import { palette } from '@/constants/palette'
 import { layout } from '@/constants/theme'
 import {
   formatGigCategory,
   formatGigTimestamp,
-  formatPhpCurrency,
+  formatPhpAmount,
   type OwnedGig,
   type PublicGig,
   type UserProfile
@@ -34,6 +34,147 @@ type FindGigHomeViewProps = {
   totalBudget: number
 }
 
+type DiscoveryGigCarouselCardProps = {
+  cardWidth: number
+  gig: PublicGig
+  index: number
+  onOpenGig: (gigId: string) => void
+}
+
+const discoveryCarouselTones = [
+  {
+    backgroundColor: '#1f8a63',
+    titleColor: '#ffffff',
+    metaColor: 'rgba(236, 255, 248, 0.84)',
+    pillColor: 'rgba(233, 255, 246, 0.22)',
+    pillTextColor: '#ffffff',
+    secondaryPillColor: 'rgba(7, 24, 18, 0.16)',
+    iconWrapColor: 'rgba(233, 255, 246, 0.18)',
+    iconColor: '#ffffff'
+  },
+  {
+    backgroundColor: '#fff0de',
+    titleColor: '#17211d',
+    metaColor: '#5b695f',
+    pillColor: '#ffffff',
+    pillTextColor: '#17211d',
+    secondaryPillColor: 'rgba(255, 255, 255, 0.74)',
+    iconWrapColor: '#ffffff',
+    iconColor: '#17211d'
+  },
+  {
+    backgroundColor: '#17211d',
+    titleColor: '#ffffff',
+    metaColor: 'rgba(235, 241, 237, 0.76)',
+    pillColor: 'rgba(255, 255, 255, 0.14)',
+    pillTextColor: '#ffffff',
+    secondaryPillColor: 'rgba(255, 255, 255, 0.08)',
+    iconWrapColor: 'rgba(255, 255, 255, 0.1)',
+    iconColor: '#ffffff'
+  }
+] as const
+
+function getDiscoveryEmptyStateBody(searchQuery: string): string {
+  if (searchQuery.trim() === '') {
+    return 'No published gigs are available right now.'
+  }
+
+  return 'Try a different keyword or clear the search bar to see more jobs.'
+}
+
+function getDistanceLabel(gig: PublicGig): string {
+  if (gig.distanceKm == null) {
+    return gig.location.barangay
+  }
+
+  return `${gig.distanceKm.toFixed(1)} km away`
+}
+
+function getCarouselTone(index: number) {
+  return discoveryCarouselTones[index % discoveryCarouselTones.length]
+}
+
+function DiscoveryGigCarouselCard({ cardWidth, gig, index, onOpenGig }: DiscoveryGigCarouselCardProps) {
+  const tone = getCarouselTone(index)
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => { onOpenGig(gig.id) }}
+      style={({ pressed }) => [
+        styles.discoveryCarouselCard,
+        {
+          width: cardWidth,
+          backgroundColor: tone.backgroundColor
+        },
+        pressed && styles.pressed
+      ]}
+    >
+      <View style={styles.discoveryCardTopRow}>
+        <View style={[styles.carouselCategoryPill, { backgroundColor: tone.pillColor }]}>
+          <Text style={[styles.carouselCategoryText, { color: tone.pillTextColor }]}>
+            {formatGigCategory(gig.category)}
+          </Text>
+        </View>
+        <View style={[styles.discoveryArrowWrap, { backgroundColor: tone.iconWrapColor }]}>
+          <Ionicons color={tone.iconColor} name="arrow-forward" size={16} />
+        </View>
+      </View>
+
+      <View style={styles.carouselContent}>
+        <Text numberOfLines={2} style={[styles.discoveryCardTitle, { color: tone.titleColor }]}>
+          {gig.title}
+        </Text>
+        <Text style={[styles.discoveryCardMeta, { color: tone.metaColor }]}>
+          {gig.location.city} · {gig.poster.displayName}
+        </Text>
+      </View>
+
+      <View style={styles.carouselMetricsRow}>
+        <View style={styles.carouselMetric}>
+          <Text style={[styles.carouselMetricValue, { color: tone.titleColor }]}>
+            {formatPhpAmount(gig.priceAmount)}
+          </Text>
+          <Text style={[styles.carouselMetricLabel, { color: tone.metaColor }]}>
+            Budget
+          </Text>
+        </View>
+        <View style={styles.carouselMetric}>
+          <Text style={[styles.carouselMetricValue, { color: tone.titleColor }]}>
+            {gig.poster.responseRate}%
+          </Text>
+          <Text style={[styles.carouselMetricLabel, { color: tone.metaColor }]}>
+            Response
+          </Text>
+        </View>
+        <View style={styles.carouselMetric}>
+          <Text style={[styles.carouselMetricValue, { color: tone.titleColor }]}>
+            {gig.poster.reviewCount}
+          </Text>
+          <Text style={[styles.carouselMetricLabel, { color: tone.metaColor }]}>
+            Reviews
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.discoveryFooter}>
+        <View style={styles.discoveryPillRow}>
+          <View style={[styles.feedPillPrimary, { backgroundColor: tone.pillColor }]}>
+            <Text style={[styles.feedPillPrimaryText, { color: tone.pillTextColor }]}>
+              {getDistanceLabel(gig)}
+            </Text>
+          </View>
+          <View style={[styles.feedPillSecondary, { backgroundColor: tone.secondaryPillColor }]}>
+            <Text style={[styles.feedPillSecondaryText, { color: tone.metaColor }]}>
+              {gig.poster.hiresCompleted} completed hires
+            </Text>
+          </View>
+        </View>
+      </View>
+    </Pressable>
+  )
+}
+
 export function FindGigHomeView({
   discoveryError,
   discoveryGigs,
@@ -58,6 +199,7 @@ export function FindGigHomeView({
   const colors = palette[mode ?? 'light']
   const cardWidth = Math.min(width - (layout.screenPadding * 2) - 28, 320)
   const carouselSnapWidth = cardWidth + 14
+  const discoveryEmptyStateBody = getDiscoveryEmptyStateBody(searchQuery)
   const initials = profile?.displayName?.trim()
     ? profile.displayName
     .split(' ')
@@ -87,104 +229,44 @@ export function FindGigHomeView({
             <View style={styles.emptyStateCard}>
               <Text selectable style={[styles.emptyStateTitle, { color: colors.text }]}>No jobs found</Text>
               <Text selectable style={[styles.emptyStateBody, { color: colors.textMuted }]}>
-                {searchQuery.trim() === ''
-                  ? 'No published gigs are available right now.'
-                  : 'Try a different keyword or clear the search bar to see more jobs.'}
+                {discoveryEmptyStateBody}
               </Text>
             </View>
             )
           : (
             <>
-              <ScrollView
+              <FlatList
+                data={discoveryGigs}
                 contentContainerStyle={styles.discoveryCarousel}
                 decelerationRate="fast"
+                directionalLockEnabled
+                disableIntervalMomentum
+                getItemLayout={(_, index) => ({
+                  index,
+                  length: carouselSnapWidth,
+                  offset: carouselSnapWidth * index
+                })}
                 horizontal
+                initialNumToRender={3}
+                ItemSeparatorComponent={() => <View style={styles.discoveryCarouselSeparator} />}
+                keyExtractor={(gig) => gig.id}
+                maxToRenderPerBatch={4}
+                nestedScrollEnabled
+                overScrollMode="never"
+                removeClippedSubviews
+                renderItem={({ item, index }) => (
+                  <DiscoveryGigCarouselCard
+                    cardWidth={cardWidth}
+                    gig={item}
+                    index={index}
+                    onOpenGig={onOpenDiscoveryGig}
+                  />
+                )}
                 showsHorizontalScrollIndicator={false}
                 snapToAlignment="start"
                 snapToInterval={carouselSnapWidth}
-              >
-                {discoveryGigs.map((gig, index) => {
-                  const tone = getCarouselTone(index)
-
-                  return (
-                    <Pressable
-                      key={gig.id}
-                      accessibilityRole="button"
-                      onPress={() => { onOpenDiscoveryGig(gig.id) }}
-                      style={({ pressed }) => [
-                        styles.discoveryCarouselCard,
-                        {
-                          width: cardWidth,
-                          backgroundColor: tone.backgroundColor
-                        },
-                        pressed ? styles.pressed : null
-                      ]}
-                    >
-                      <View style={styles.discoveryCardTopRow}>
-                        <View style={[styles.carouselCategoryPill, { backgroundColor: tone.pillColor }]}>
-                          <Text selectable style={[styles.carouselCategoryText, { color: tone.pillTextColor }]}>
-                            {formatGigCategory(gig.category)}
-                          </Text>
-                        </View>
-                        <View style={[styles.discoveryArrowWrap, { backgroundColor: tone.iconWrapColor }]}>
-                          <Ionicons color={tone.iconColor} name="arrow-forward" size={16} />
-                        </View>
-                      </View>
-
-                      <View style={styles.carouselContent}>
-                        <Text numberOfLines={2} selectable style={[styles.discoveryCardTitle, { color: tone.titleColor }]}>
-                          {gig.title}
-                        </Text>
-                        <Text selectable style={[styles.discoveryCardMeta, { color: tone.metaColor }]}>
-                          {gig.location.city} · {gig.poster.displayName}
-                        </Text>
-                      </View>
-
-                      <View style={styles.carouselMetricsRow}>
-                        <View style={styles.carouselMetric}>
-                          <Text selectable style={[styles.carouselMetricValue, { color: tone.titleColor }]}>
-                            {formatPhpCurrency(gig.priceAmount)}
-                          </Text>
-                          <Text selectable style={[styles.carouselMetricLabel, { color: tone.metaColor }]}>
-                            Budget
-                          </Text>
-                        </View>
-                        <View style={styles.carouselMetric}>
-                          <Text selectable style={[styles.carouselMetricValue, { color: tone.titleColor }]}>
-                            {gig.poster.responseRate}%
-                          </Text>
-                          <Text selectable style={[styles.carouselMetricLabel, { color: tone.metaColor }]}>
-                            Response
-                          </Text>
-                        </View>
-                        <View style={styles.carouselMetric}>
-                          <Text selectable style={[styles.carouselMetricValue, { color: tone.titleColor }]}>
-                            {gig.poster.reviewCount}
-                          </Text>
-                          <Text selectable style={[styles.carouselMetricLabel, { color: tone.metaColor }]}>
-                            Reviews
-                          </Text>
-                        </View>
-                      </View>
-
-                      <View style={styles.discoveryFooter}>
-                        <View style={styles.discoveryPillRow}>
-                          <View style={[styles.feedPillPrimary, { backgroundColor: tone.pillColor }]}>
-                            <Text selectable style={[styles.feedPillPrimaryText, { color: tone.pillTextColor }]}>
-                              {gig.distanceKm == null ? gig.location.barangay : `${gig.distanceKm.toFixed(1)} km away`}
-                            </Text>
-                          </View>
-                          <View style={[styles.feedPillSecondary, { backgroundColor: tone.secondaryPillColor }]}>
-                            <Text selectable style={[styles.feedPillSecondaryText, { color: tone.metaColor }]}>
-                              {gig.poster.hiresCompleted} completed hires
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                    </Pressable>
-                  )
-                })}
-              </ScrollView>
+                windowSize={5}
+              />
 
               <Text selectable style={[styles.paginationText, { color: colors.textMuted }]}>
                 Page {discoveryPage + 1} of {discoveryPageCount}
@@ -247,7 +329,7 @@ export function FindGigHomeView({
           </View>
           <View style={styles.profileStatItem}>
             <Text selectable style={[styles.profileStatValue, { color: colors.text }]}>
-              {totalBudget > 0 ? formatPhpCurrency(totalBudget) : 'PHP 0'}
+              {totalBudget > 0 ? formatPhpAmount(totalBudget) : '₱0'}
             </Text>
             <Text selectable style={[styles.profileStatLabel, { color: colors.textMuted }]}>Budget</Text>
           </View>
@@ -305,7 +387,7 @@ export function FindGigHomeView({
 
             <View style={styles.feedCardFooter}>
               <View style={styles.feedCardPriceGroup}>
-                <Text selectable style={[styles.feedCardPrice, { color: colors.text }]}>{formatPhpCurrency(gig.priceAmount)}</Text>
+                <Text selectable style={[styles.feedCardPrice, { color: colors.text }]}>{formatPhpAmount(gig.priceAmount)}</Text>
                 <Text selectable style={[styles.feedCardTime, { color: colors.textMuted }]}>{formatGigTimestamp(gig.updatedAt)}</Text>
               </View>
               <Text selectable style={[styles.feedCardSchedule, { color: colors.textMuted }]}>{gig.applicationCount} applicants</Text>
@@ -314,41 +396,4 @@ export function FindGigHomeView({
         ))}
     </>
   )
-}
-
-function getCarouselTone(index: number) {
-  const tones = [
-    {
-      backgroundColor: '#1f8a63',
-      titleColor: '#ffffff',
-      metaColor: 'rgba(236, 255, 248, 0.84)',
-      pillColor: 'rgba(233, 255, 246, 0.22)',
-      pillTextColor: '#ffffff',
-      secondaryPillColor: 'rgba(7, 24, 18, 0.16)',
-      iconWrapColor: 'rgba(233, 255, 246, 0.18)',
-      iconColor: '#ffffff'
-    },
-    {
-      backgroundColor: '#fff0de',
-      titleColor: '#17211d',
-      metaColor: '#5b695f',
-      pillColor: '#ffffff',
-      pillTextColor: '#17211d',
-      secondaryPillColor: 'rgba(255, 255, 255, 0.74)',
-      iconWrapColor: '#ffffff',
-      iconColor: '#17211d'
-    },
-    {
-      backgroundColor: '#17211d',
-      titleColor: '#ffffff',
-      metaColor: 'rgba(235, 241, 237, 0.76)',
-      pillColor: 'rgba(255, 255, 255, 0.14)',
-      pillTextColor: '#ffffff',
-      secondaryPillColor: 'rgba(255, 255, 255, 0.08)',
-      iconWrapColor: 'rgba(255, 255, 255, 0.1)',
-      iconColor: '#ffffff'
-    }
-  ] as const
-
-  return tones[index % tones.length]
 }
