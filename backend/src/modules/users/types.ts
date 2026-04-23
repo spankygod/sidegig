@@ -1,6 +1,10 @@
 export interface UserProfile {
   id: string
   displayName: string
+  phone: string | null
+  avatarUrl: string | null
+  hasPin: boolean
+  province: string | null
   city: string | null
   barangay: string | null
   latitude: number | null
@@ -22,6 +26,8 @@ export interface UserProfile {
 export interface PublicUserProfile {
   id: string
   displayName: string
+  avatarUrl: string | null
+  province: string | null
   city: string | null
   barangay: string | null
   bio: string | null
@@ -39,6 +45,10 @@ export interface PublicUserProfile {
 
 export interface UpdateUserProfileInput {
   displayName?: string
+  phone?: string | null
+  avatarUrl?: string | null
+  pinCode?: string | null
+  province?: string | null
   city?: string | null
   barangay?: string | null
   latitude?: number | null

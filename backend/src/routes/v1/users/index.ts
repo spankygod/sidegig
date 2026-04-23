@@ -1,5 +1,5 @@
 import { type FastifyPluginAsync } from 'fastify'
-import { ensureUserProfile, getPublicUserProfileById } from '../../../modules/users/repository'
+import { getPublicUserProfileById } from '../../../modules/users/repository'
 import { listUserReceivedReviews } from '../../../modules/reviews/repository'
 
 type UserParams = {
@@ -26,8 +26,6 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
       params: userParamsSchema
     }
   }, async function (request, reply) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const profile = await getPublicUserProfileById(fastify.db, request.params.userId)
 
     if (profile == null) {
@@ -53,8 +51,6 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
   }, async function (request) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const reviews = await listUserReceivedReviews(fastify.db, {
       userId: request.params.userId,
       limit: request.query.limit

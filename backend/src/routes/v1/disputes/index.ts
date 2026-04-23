@@ -1,5 +1,4 @@
 import { type FastifyPluginAsync } from 'fastify'
-import { ensureUserProfile } from '../../../modules/users/repository'
 import { DISPUTE_STATUSES, type DisputeStatus } from '../../../modules/disputes/types'
 import { getUserDisputeById, listUserDisputes } from '../../../modules/disputes/repository'
 
@@ -33,8 +32,6 @@ const disputesRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
   }, async function (request) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const disputes = await listUserDisputes(fastify.db, request.authUser!.id, {
       status: request.query.status
     })
@@ -50,8 +47,6 @@ const disputesRoutes: FastifyPluginAsync = async (fastify) => {
       params: disputeParamsSchema
     }
   }, async function (request, reply) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const dispute = await getUserDisputeById(fastify.db, {
       disputeId: request.params.disputeId,
       userId: request.authUser!.id

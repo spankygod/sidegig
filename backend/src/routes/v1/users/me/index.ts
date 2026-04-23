@@ -1,10 +1,14 @@
 import { type FastifyPluginAsync } from 'fastify'
-import { ensureUserProfile, updateUserProfile } from '../../../../modules/users/repository'
+import { ensureUserProfile, getUserProfileById, updateUserProfile } from '../../../../modules/users/repository'
 import type { UpdateUserProfileInput } from '../../../../modules/users/types'
 import { findContactDetailViolationInFields, formatModerationViolation } from '../../../../modules/moderation/policy'
 
 type UpdateProfileBody = {
   displayName?: string
+  phone?: string | null
+  avatarUrl?: string | null
+  pinCode?: string | null
+  province?: string | null
   city?: string | null
   barangay?: string | null
   latitude?: number | null
@@ -12,6 +16,42 @@ type UpdateProfileBody = {
   serviceRadiusKm?: number
   bio?: string | null
   skills?: string[]
+}
+
+function hasOwnField(body: UpdateProfileBody, field: keyof UpdateProfileBody): boolean {
+  return Object.prototype.hasOwnProperty.call(body, field)
+}
+
+function readOptionalTrimmedString(
+  body: UpdateProfileBody,
+  field: 'phone' | 'avatarUrl' | 'pinCode' | 'province' | 'city' | 'barangay' | 'bio'
+): string | null | undefined {
+  if (!hasOwnField(body, field)) {
+    return undefined
+  }
+
+  const value = body[field]
+
+  if (value == null) {
+    return null
+  }
+
+  return value.trim()
+}
+
+function readOptionalCoordinate(
+  value: number | null | undefined,
+  shouldUseValue: boolean
+): number | null | undefined {
+  if (!shouldUseValue) {
+    return undefined
+  }
+
+  if (value == null) {
+    return null
+  }
+
+  return value
 }
 
 function normalizeSkills (skills: string[] | undefined): string[] | undefined {
@@ -29,6 +69,21 @@ function normalizeSkills (skills: string[] | undefined): string[] | undefined {
 const usersMeRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/', {
     onRequest: [fastify.authenticate]
+  }, async function (request, reply) {
+    const profile = await getUserProfileById(fastify.db, request.authUser!.id)
+
+    if (profile == null) {
+      reply.notFound('Profile not found')
+      return
+    }
+
+    return {
+      profile
+    }
+  })
+
+  fastify.post('/provision', {
+    onRequest: [fastify.authenticate]
   }, async function (request) {
     const profile = await ensureUserProfile(fastify.db, request.authUser!)
 
@@ -45,6 +100,10 @@ const usersMeRoutes: FastifyPluginAsync = async (fastify) => {
         additionalProperties: false,
         properties: {
           displayName: { type: 'string', minLength: 2, maxLength: 50 },
+          phone: { anyOf: [{ type: 'string', minLength: 7, maxLength: 24 }, { type: 'null' }] },
+          avatarUrl: { anyOf: [{ type: 'string', minLength: 1, maxLength: 5000 }, { type: 'null' }] },
+          pinCode: { anyOf: [{ type: 'string', minLength: 4, maxLength: 8, pattern: '^[0-9]+$' }, { type: 'null' }] },
+          province: { anyOf: [{ type: 'string', minLength: 1, maxLength: 80 }, { type: 'null' }] },
           city: { anyOf: [{ type: 'string', minLength: 1, maxLength: 80 }, { type: 'null' }] },
           barangay: { anyOf: [{ type: 'string', minLength: 1, maxLength: 80 }, { type: 'null' }] },
           latitude: { anyOf: [{ type: 'number', minimum: -90, maximum: 90 }, { type: 'null' }] },
@@ -72,18 +131,16 @@ const usersMeRoutes: FastifyPluginAsync = async (fastify) => {
 
     const input: UpdateUserProfileInput = {
       displayName: request.body.displayName?.trim(),
-      city: Object.prototype.hasOwnProperty.call(request.body, 'city')
-        ? request.body.city?.trim() ?? null
-        : undefined,
-      barangay: Object.prototype.hasOwnProperty.call(request.body, 'barangay')
-        ? request.body.barangay?.trim() ?? null
-        : undefined,
-      latitude: hasLatitude ? request.body.latitude ?? null : undefined,
-      longitude: hasLongitude ? request.body.longitude ?? null : undefined,
+      phone: readOptionalTrimmedString(request.body, 'phone'),
+      avatarUrl: readOptionalTrimmedString(request.body, 'avatarUrl'),
+      pinCode: readOptionalTrimmedString(request.body, 'pinCode'),
+      province: readOptionalTrimmedString(request.body, 'province'),
+      city: readOptionalTrimmedString(request.body, 'city'),
+      barangay: readOptionalTrimmedString(request.body, 'barangay'),
+      latitude: readOptionalCoordinate(request.body.latitude, hasLatitude),
+      longitude: readOptionalCoordinate(request.body.longitude, hasLongitude),
       serviceRadiusKm: request.body.serviceRadiusKm,
-      bio: Object.prototype.hasOwnProperty.call(request.body, 'bio')
-        ? request.body.bio?.trim() ?? null
-        : undefined,
+      bio: readOptionalTrimmedString(request.body, 'bio'),
       skills: normalizeSkills(request.body.skills)
     }
 
@@ -92,11 +149,33 @@ const usersMeRoutes: FastifyPluginAsync = async (fastify) => {
       return
     }
 
-    const moderationViolation = findContactDetailViolationInFields([
+    if (input.phone != null) {
+      const normalizedDigits = input.phone.replace(/\D/g, '')
+
+      if (normalizedDigits.length < 10 || normalizedDigits.length > 15) {
+        reply.badRequest('Phone number must be between 10 and 15 digits')
+        return
+      }
+    }
+
+    if (input.pinCode != null && !/^\d{4,8}$/.test(input.pinCode)) {
+      reply.badRequest('PIN code must be 4 to 8 digits')
+      return
+    }
+
+    const moderationFields = [
       { label: 'Display name', value: input.displayName },
-      { label: 'Bio', value: input.bio },
-      ...(input.skills ?? []).map((skill) => ({ label: 'Skill', value: skill }))
-    ])
+      { label: 'Bio', value: input.bio }
+    ]
+
+    for (const skill of input.skills ?? []) {
+      moderationFields.push({
+        label: 'Skill',
+        value: skill
+      })
+    }
+
+    const moderationViolation = findContactDetailViolationInFields(moderationFields)
 
     if (moderationViolation != null) {
       reply.badRequest(formatModerationViolation(moderationViolation))

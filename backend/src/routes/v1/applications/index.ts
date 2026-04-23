@@ -147,8 +147,6 @@ const applicationsRoutes: FastifyPluginAsync = async (fastify) => {
       params: applicationParamsSchema
     }
   }, async function (request, reply) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const application = await getWorkerApplicationById(fastify.db, {
       applicationId: request.params.applicationId,
       workerId: request.authUser!.id
@@ -170,8 +168,6 @@ const applicationsRoutes: FastifyPluginAsync = async (fastify) => {
       params: applicationParamsSchema
     }
   }, async function (request, reply) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const application = await withdrawWorkerApplication(fastify.db, {
       applicationId: request.params.applicationId,
       workerId: request.authUser!.id

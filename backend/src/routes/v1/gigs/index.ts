@@ -236,8 +236,6 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
   }, async function (request) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const gigs = await listPosterGigs(fastify.db, request.authUser!.id, {
       status: request.query.status,
       limit: request.query.limit ?? 50
@@ -261,8 +259,6 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
   }, async function (request, reply) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const gig = await getPosterGigById(fastify.db, request.authUser!.id, request.params.gigId)
 
     if (gig == null) {
@@ -288,8 +284,6 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
   }, async function (request, reply) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const gig = await getPosterGigById(fastify.db, request.authUser!.id, request.params.gigId)
 
     if (gig == null) {

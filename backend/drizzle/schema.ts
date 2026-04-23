@@ -96,6 +96,10 @@ export const payoutStatusEnum = pgEnum('payout_status', [
 export const profiles = pgTable('profiles', {
   id: uuid('id').primaryKey().references(() => authUsers.id, { onDelete: 'cascade' }),
   displayName: text('display_name').notNull(),
+  phone: text('phone'),
+  avatarUrl: text('avatar_url'),
+  pinHash: text('pin_hash'),
+  province: text('province'),
   city: text('city'),
   barangay: text('barangay'),
   latitude: numeric('latitude', { precision: 9, scale: 6 }),

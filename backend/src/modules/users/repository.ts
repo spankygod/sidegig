@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import type { Pool } from 'pg'
 import { deriveDisplayName, type AuthenticatedUser } from '../auth/types'
 import { DEFAULT_SERVICE_RADIUS_KM } from '../proximity'
@@ -6,6 +7,10 @@ import type { PublicUserProfile, UpdateUserProfileInput, UserProfile } from './t
 type UserProfileRow = {
   id: string
   display_name: string
+  phone: string | null
+  avatar_url: string | null
+  pin_hash: string | null
+  province: string | null
   city: string | null
   barangay: string | null
   latitude: string | number | null
@@ -22,14 +27,46 @@ type UserProfileRow = {
   hires_completed: number | null
 }
 
+function hashPinCode(userId: string, pinCode: string): string {
+  return createHash('sha256')
+    .update(`${userId}:${pinCode}`)
+    .digest('hex')
+}
+
+function toNullableNumber(value: string | number | null): number | null {
+  if (value == null) {
+    return null
+  }
+
+  return Number(value)
+}
+
+function resolvePinHash(userId: string, input: UpdateUserProfileInput): string | null | undefined {
+  const shouldUpdatePin = Object.prototype.hasOwnProperty.call(input, 'pinCode')
+
+  if (!shouldUpdatePin) {
+    return undefined
+  }
+
+  if (input.pinCode == null) {
+    return null
+  }
+
+  return hashPinCode(userId, input.pinCode)
+}
+
 function mapUserProfile (row: UserProfileRow): UserProfile {
   return {
     id: row.id,
     displayName: row.display_name,
+    phone: row.phone,
+    avatarUrl: row.avatar_url,
+    hasPin: row.pin_hash != null && row.pin_hash.trim() !== '',
+    province: row.province,
     city: row.city,
     barangay: row.barangay,
-    latitude: row.latitude == null ? null : Number(row.latitude),
-    longitude: row.longitude == null ? null : Number(row.longitude),
+    latitude: toNullableNumber(row.latitude),
+    longitude: toNullableNumber(row.longitude),
     serviceRadiusKm: row.service_radius_km ?? DEFAULT_SERVICE_RADIUS_KM,
     bio: row.bio,
     skills: row.skills ?? [],
@@ -49,6 +86,8 @@ function mapPublicUserProfile (row: UserProfileRow): PublicUserProfile {
   return {
     id: row.id,
     displayName: row.display_name,
+    avatarUrl: row.avatar_url,
+    province: row.province,
     city: row.city,
     barangay: row.barangay,
     bio: row.bio,
@@ -71,29 +110,27 @@ export async function ensureUserProfile (
 ): Promise<UserProfile> {
   const defaultDisplayName = deriveDisplayName(user)
 
-  await db.query(
-    `
-      insert into public.profiles (id, display_name)
-      values ($1, $2)
-      on conflict (id) do nothing
-    `,
-    [user.id, defaultDisplayName]
-  )
-
-  await db.query(
-    `
-      insert into public.user_stats (user_id)
-      values ($1)
-      on conflict (user_id) do nothing
-    `,
-    [user.id]
-  )
-
   const result = await db.query<UserProfileRow>(
     `
+      with ensured_profile as (
+        insert into public.profiles (id, display_name)
+        values ($1, $2)
+        on conflict (id) do nothing
+        returning id
+      ),
+      ensured_stats as (
+        insert into public.user_stats (user_id)
+        values ($1)
+        on conflict (user_id) do nothing
+        returning user_id
+      )
       select
         p.id,
         p.display_name,
+        p.phone,
+        p.avatar_url,
+        p.pin_hash,
+        p.province,
         p.city,
         p.barangay,
         p.latitude,
@@ -112,8 +149,49 @@ export async function ensureUserProfile (
       left join public.user_stats us on us.user_id = p.id
       where p.id = $1
     `,
-    [user.id]
+    [user.id, defaultDisplayName]
   )
+
+  return mapUserProfile(result.rows[0])
+}
+
+export async function getUserProfileById (
+  db: Pool,
+  userId: string
+): Promise<UserProfile | null> {
+  const result = await db.query<UserProfileRow>(
+    `
+      select
+        p.id,
+        p.display_name,
+        p.phone,
+        p.avatar_url,
+        p.pin_hash,
+        p.province,
+        p.city,
+        p.barangay,
+        p.latitude,
+        p.longitude,
+        p.service_radius_km,
+        p.bio,
+        p.skills,
+        us.rating,
+        us.review_count,
+        us.jobs_completed,
+        us.response_rate,
+        us.gigs_posted,
+        us.hires_funded,
+        us.hires_completed
+      from public.profiles p
+      left join public.user_stats us on us.user_id = p.id
+      where p.id = $1
+    `,
+    [userId]
+  )
+
+  if (result.rowCount === 0) {
+    return null
+  }
 
   return mapUserProfile(result.rows[0])
 }
@@ -160,6 +238,10 @@ export async function getPublicUserProfileById (
       select
         p.id,
         p.display_name,
+        p.phone,
+        p.avatar_url,
+        p.pin_hash,
+        p.province,
         p.city,
         p.barangay,
         null::numeric as latitude,
@@ -193,23 +275,33 @@ export async function updateUserProfile (
   userId: string,
   input: UpdateUserProfileInput
 ): Promise<UserProfile> {
+  const normalizedPinHash = resolvePinHash(userId, input)
+
   const profileResult = await db.query<UserProfileRow>(
     `
       update public.profiles
       set
         display_name = coalesce($2, display_name),
-        city = case when $3::boolean then $4 else city end,
-        barangay = case when $5::boolean then $6 else barangay end,
-        latitude = case when $7::boolean then $8 else latitude end,
-        longitude = case when $9::boolean then $10 else longitude end,
-        service_radius_km = coalesce($11, service_radius_km),
-        bio = case when $12::boolean then $13 else bio end,
-        skills = case when $14::boolean then $15 else skills end,
+        phone = case when $3::boolean then $4 else phone end,
+        avatar_url = case when $5::boolean then $6 else avatar_url end,
+        pin_hash = case when $7::boolean then $8 else pin_hash end,
+        province = case when $9::boolean then $10 else province end,
+        city = case when $11::boolean then $12 else city end,
+        barangay = case when $13::boolean then $14 else barangay end,
+        latitude = case when $15::boolean then $16 else latitude end,
+        longitude = case when $17::boolean then $18 else longitude end,
+        service_radius_km = coalesce($19, service_radius_km),
+        bio = case when $20::boolean then $21 else bio end,
+        skills = case when $22::boolean then $23 else skills end,
         updated_at = now()
       where id = $1
       returning
         id,
         display_name,
+        phone,
+        avatar_url,
+        pin_hash,
+        province,
         city,
         barangay,
         latitude,
@@ -228,6 +320,14 @@ export async function updateUserProfile (
     [
       userId,
       input.displayName,
+      Object.prototype.hasOwnProperty.call(input, 'phone'),
+      input.phone ?? null,
+      Object.prototype.hasOwnProperty.call(input, 'avatarUrl'),
+      input.avatarUrl ?? null,
+      Object.prototype.hasOwnProperty.call(input, 'pinCode'),
+      normalizedPinHash ?? null,
+      Object.prototype.hasOwnProperty.call(input, 'province'),
+      input.province ?? null,
       Object.prototype.hasOwnProperty.call(input, 'city'),
       input.city ?? null,
       Object.prototype.hasOwnProperty.call(input, 'barangay'),
