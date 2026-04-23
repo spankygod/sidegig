@@ -1,18 +1,90 @@
 import { Ionicons } from '@expo/vector-icons'
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs'
-import { ActivityIndicator, Pressable, useWindowDimensions, View } from 'react-native'
-import { Redirect, Tabs } from 'expo-router'
+import { Pressable, useWindowDimensions, View } from 'react-native'
+import { Tabs } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { palette } from '@/constants/palette'
+import { palette, resolvePaletteMode } from '@/constants/palette'
 import { useColorScheme } from '@/hooks/use-color-scheme'
-import { useSession } from '@/providers/session-provider'
 import { tabLayoutStyles as styles } from '@/styles/screens/tab-layout'
+
+function getTabBarBottomOffset(bottomInset: number): number {
+  if (bottomInset > 0) {
+    return bottomInset + 6
+  }
+
+  return 16
+}
+
+function getTabTintColor(isFocused: boolean): string {
+  if (isFocused) {
+    return '#48d68e'
+  }
+
+  return 'rgba(255, 255, 255, 0.86)'
+}
+
+function getTabAccessibilityState(isFocused: boolean) {
+  if (isFocused) {
+    return { selected: true } as const
+  }
+
+  return undefined
+}
+
+function getHomeTabIconName(isFocused: boolean): 'home' | 'home-outline' {
+  if (isFocused) {
+    return 'home'
+  }
+
+  return 'home-outline'
+}
+
+function getGigsTabIconName(isFocused: boolean): 'briefcase' | 'briefcase-outline' {
+  if (isFocused) {
+    return 'briefcase'
+  }
+
+  return 'briefcase-outline'
+}
+
+function getMessagesTabIconName(isFocused: boolean): 'chatbubble-ellipses' | 'chatbubble-ellipses-outline' {
+  if (isFocused) {
+    return 'chatbubble-ellipses'
+  }
+
+  return 'chatbubble-ellipses-outline'
+}
+
+function getProfileTabIconName(isFocused: boolean): 'person' | 'person-outline' {
+  if (isFocused) {
+    return 'person'
+  }
+
+  return 'person-outline'
+}
+
+function shouldHideTabBar(style: unknown): boolean {
+  if (Array.isArray(style)) {
+    return style.some((item) => shouldHideTabBar(item))
+  }
+
+  if (style == null || typeof style !== 'object') {
+    return false
+  }
+
+  return 'display' in style && style.display === 'none'
+}
 
 function FloatingTabBar({ descriptors, navigation, state }: BottomTabBarProps) {
   const insets = useSafeAreaInsets()
   const { width: windowWidth } = useWindowDimensions()
   const dockWidth = Math.min(windowWidth - 24, 208)
   const activeRouteKey = state.routes[state.index]?.key
+  const activeDescriptor = activeRouteKey == null ? null : descriptors[activeRouteKey]
+
+  if (activeDescriptor != null && shouldHideTabBar(activeDescriptor.options.tabBarStyle)) {
+    return null
+  }
 
   return (
     <View
@@ -20,16 +92,17 @@ function FloatingTabBar({ descriptors, navigation, state }: BottomTabBarProps) {
       style={[
         styles.wrapper,
         {
-          bottom: insets.bottom > 0 ? insets.bottom + 6 : 16
+          bottom: getTabBarBottomOffset(insets.bottom)
         }
       ]}
     >
-      <View style={[styles.dock, { width: dockWidth }]}> 
+      <View style={[styles.dock, { width: dockWidth }]}>
         {state.routes.map((route) => {
           const descriptor = descriptors[route.key]
           const { options } = descriptor
           const isFocused = route.key === activeRouteKey
-          const tintColor = isFocused ? '#48d68e' : 'rgba(255, 255, 255, 0.86)'
+          const tintColor = getTabTintColor(isFocused)
+          const accessibilityState = getTabAccessibilityState(isFocused)
 
           const onPress = () => {
             const event = navigation.emit({
@@ -55,13 +128,13 @@ function FloatingTabBar({ descriptors, navigation, state }: BottomTabBarProps) {
               key={route.key}
               accessibilityLabel={options.tabBarAccessibilityLabel}
               accessibilityRole="button"
-              accessibilityState={isFocused ? { selected: true } : {}}
+              accessibilityState={accessibilityState}
               onLongPress={onLongPress}
               onPress={onPress}
               style={({ pressed }) => [
                 styles.item,
-                isFocused ? styles.itemActive : null,
-                pressed ? styles.itemPressed : null
+                isFocused && styles.itemActive,
+                pressed && styles.itemPressed
               ]}
               testID={options.tabBarButtonTestID}
             >
@@ -80,21 +153,8 @@ function FloatingTabBar({ descriptors, navigation, state }: BottomTabBarProps) {
 
 export default function TabLayout() {
   const colorScheme = useColorScheme()
-  const mode = colorScheme === 'dark' ? 'dark' : 'light'
+  const mode = resolvePaletteMode(colorScheme)
   const colors = palette[mode]
-  const { isReady, session } = useSession()
-
-  if (!isReady) {
-    return (
-      <View style={[styles.loadingScreen, { backgroundColor: colors.background }]}>
-        <ActivityIndicator color={colors.accent} size="large" />
-      </View>
-    )
-  }
-
-  if (session == null) {
-    return <Redirect href="/sign-in" />
-  }
 
   return (
     <Tabs
@@ -117,7 +177,7 @@ export default function TabLayout() {
           title: 'Feed',
           headerShown: false,
           tabBarIcon: ({ color, focused, size }) => (
-            <Ionicons color={color} name={focused ? 'home' : 'home-outline'} size={size} />
+            <Ionicons color={color} name={getHomeTabIconName(focused)} size={size} />
           )
         }}
       />
@@ -126,7 +186,7 @@ export default function TabLayout() {
         options={{
           title: 'Gigs',
           tabBarIcon: ({ color, focused, size }) => (
-            <Ionicons color={color} name={focused ? 'briefcase' : 'briefcase-outline'} size={size} />
+            <Ionicons color={color} name={getGigsTabIconName(focused)} size={size} />
           )
         }}
       />
@@ -136,7 +196,7 @@ export default function TabLayout() {
           title: 'Messages',
           headerShown: false,
           tabBarIcon: ({ color, focused, size }) => (
-            <Ionicons color={color} name={focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'} size={size} />
+            <Ionicons color={color} name={getMessagesTabIconName(focused)} size={size} />
           )
         }}
       />
@@ -145,7 +205,7 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused, size }) => (
-            <Ionicons color={color} name={focused ? 'person' : 'person-outline'} size={size} />
+            <Ionicons color={color} name={getProfileTabIconName(focused)} size={size} />
           )
         }}
       />

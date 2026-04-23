@@ -6,196 +6,236 @@ export const messagesScreenStyles = StyleSheet.create({
   screen: {
     flex: 1
   },
-  scrollArea: {
-    flex: 1
+  loadingState: {
+    alignItems: 'center',
+    justifyContent: 'center'
   },
-  contentContainer: {
+  pressed: {
+    opacity: 0.9
+  },
+  inboxHeader: {
     paddingHorizontal: layout.screenPadding,
-    paddingTop: 24,
-    paddingBottom: 112,
-    gap: layout.sectionGap
-  },
-  heroBlock: {
-    gap: 10
-  },
-  eyebrow: {
-    fontSize: 13,
-    letterSpacing: 0.2,
-    ...textStyles.title
-  },
-  title: {
-    fontSize: 28,
-    lineHeight: 34,
-    ...textStyles.headline
-  },
-  body: {
-    fontSize: 15,
-    lineHeight: 22
-  },
-  tabsRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    gap: 20,
-    paddingBottom: 10,
+    paddingBottom: 12,
+    gap: 12,
     borderBottomWidth: 1
   },
-  activeTab: {
-    gap: 8
+  inboxTitle: {
+    fontSize: 30,
+    lineHeight: 36,
+    ...textStyles.headline
   },
-  tabLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8
-  },
-  tabLabelRowCompact: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingBottom: 2
-  },
-  activeTabLabel: {
-    fontSize: 15,
-    ...textStyles.title
-  },
-  inactiveTabLabel: {
-    fontSize: 15,
-    ...textStyles.label
-  },
-  activeTabIndicator: {
-    height: 2,
-    width: 108,
-    borderRadius: 999
-  },
-  searchBar: {
-    minHeight: 42,
-    borderRadius: 999,
-    paddingHorizontal: 14,
+  searchField: {
+    minHeight: 46,
+    borderRadius: layout.radius.pill,
+    borderWidth: 1,
+    paddingLeft: 14,
+    paddingRight: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10
   },
-  searchText: {
+  searchInput: {
     flex: 1,
-    fontSize: 14,
+    minHeight: 44,
+    fontSize: 15,
     ...textStyles.bodyStrong
   },
-  featuredCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
+  clearSearchButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  threadList: {
+    flex: 1
+  },
+  threadListContent: {
+    paddingTop: 6
+  },
+  threadRow: {
+    paddingHorizontal: layout.screenPadding,
+    paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12
   },
-  featuredAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  threadSeparator: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: layout.screenPadding + 60,
+    marginRight: layout.screenPadding
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center'
   },
-  featuredAvatarText: {
-    color: '#4f6158',
-    fontSize: 13,
-    ...textStyles.title
-  },
-  featuredCopy: {
-    flex: 1,
-    gap: 4
-  },
-  featuredMessage: {
-    fontSize: 13,
-    lineHeight: 19
-  },
-  featuredMessageStrong: {
-    ...textStyles.title
-  },
-  featuredReplyAccent: {
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    alignSelf: 'flex-start'
-  },
-  featuredReplyText: {
-    fontSize: 12,
-    ...textStyles.title
-  },
-  threadList: {
-    gap: 2
-  },
-  threadRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-    paddingVertical: 8
-  },
-  threadAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  threadAvatarText: {
+  avatarText: {
     color: '#ffffff',
-    fontSize: 14,
+    fontSize: 15,
     ...textStyles.title
   },
   threadCopy: {
     flex: 1,
     minWidth: 0,
-    gap: 4
+    gap: 3
   },
-  threadHeader: {
+  threadTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6
+    gap: 8
   },
   threadName: {
-    flexShrink: 1,
-    fontSize: 15,
+    flex: 1,
+    fontSize: 16,
     ...textStyles.title
   },
-  threadPin: {
-    fontSize: 12
+  threadTime: {
+    fontSize: 12,
+    ...textStyles.label
   },
-  previewPrefixRow: {
+  threadContext: {
+    fontSize: 12,
+    lineHeight: 16,
+    ...textStyles.label
+  },
+  threadPreview: {
+    fontSize: 14,
+    lineHeight: 20,
+    ...textStyles.bodyStrong
+  },
+  detailHeader: {
+    paddingHorizontal: layout.screenPadding,
+    paddingBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4
+    gap: 12,
+    borderBottomWidth: 1
   },
-  previewPrefixText: {
+  backButton: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  detailHeaderCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2
+  },
+  detailTitle: {
+    fontSize: 16,
+    ...textStyles.title
+  },
+  detailSubtitle: {
     fontSize: 13,
     lineHeight: 18
   },
-  previewText: {
+  messageList: {
+    flex: 1
+  },
+  messageListContent: {
+    paddingHorizontal: layout.screenPadding,
+    paddingTop: 16,
+    gap: 12
+  },
+  messageRow: {
+    flexDirection: 'row'
+  },
+  messageRowMine: {
+    justifyContent: 'flex-end'
+  },
+  messageRowOther: {
+    justifyContent: 'flex-start'
+  },
+  messageBubble: {
+    maxWidth: '82%',
+    borderRadius: 22,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 10,
+    gap: 8
+  },
+  messageBody: {
+    fontSize: 15,
+    lineHeight: 21,
+    ...textStyles.bodyStrong
+  },
+  messageTime: {
+    fontSize: 11,
+    ...textStyles.label
+  },
+  composerBar: {
+    paddingHorizontal: layout.screenPadding,
+    paddingTop: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 12,
+    borderTopWidth: 1
+  },
+  composerInputWrap: {
+    flex: 1,
+    minHeight: 52,
+    maxHeight: 132,
+    borderRadius: 24,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10
+  },
+  composerInput: {
+    fontSize: 15,
+    lineHeight: 21,
+    maxHeight: 112,
+    textAlignVertical: 'top',
+    ...textStyles.body
+  },
+  sendButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  errorBanner: {
+    borderRadius: layout.radius.lg,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
+  listHeaderWrap: {
+    paddingHorizontal: layout.screenPadding,
+    paddingTop: 12
+  },
+  errorText: {
+    flex: 1,
     fontSize: 13,
     lineHeight: 18,
     ...textStyles.bodyStrong
   },
-  threadMeta: {
-    alignItems: 'flex-end',
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 36,
     gap: 8
   },
-  timeLabel: {
-    fontSize: 12,
-    ...textStyles.label
-  },
-  unreadBadge: {
-    minWidth: 20,
-    height: 20,
-    paddingHorizontal: 6,
-    borderRadius: 999,
-    backgroundColor: '#d84c4c',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  unreadBadgeText: {
-    color: '#ffffff',
-    fontSize: 11,
+  emptyTitle: {
+    fontSize: 20,
+    lineHeight: 24,
+    textAlign: 'center',
     ...textStyles.title
+  },
+  emptyBody: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    ...textStyles.body
   }
 })
