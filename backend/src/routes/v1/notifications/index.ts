@@ -4,7 +4,6 @@ import {
   markAllNotificationsRead,
   markNotificationRead
 } from '../../../modules/notifications/repository'
-import { ensureUserProfile } from '../../../modules/users/repository'
 
 type ListNotificationsQuery = {
   unreadOnly?: boolean
@@ -38,8 +37,6 @@ const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
   }, async function (request) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const notifications = await listUserNotifications(fastify.db, {
       userId: request.authUser!.id,
       unreadOnly: request.query.unreadOnly,
@@ -57,8 +54,6 @@ const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
       params: notificationParamsSchema
     }
   }, async function (request, reply) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const notification = await markNotificationRead(fastify.db, {
       notificationId: request.params.notificationId,
       userId: request.authUser!.id
@@ -77,8 +72,6 @@ const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/read-all', {
     onRequest: [fastify.authenticate]
   }, async function (request) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const updatedCount = await markAllNotificationsRead(fastify.db, request.authUser!.id)
 
     return {

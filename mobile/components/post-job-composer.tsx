@@ -1,7 +1,7 @@
 import React from 'react'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import WheelPicker from '@quidone/react-native-wheel-picker'
-import { Modal, Pressable, Platform, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Modal, Pressable, Platform, Text, TextInput, View } from 'react-native'
 import { AppSurface } from '@/components/app-surface'
 import { OptionChip } from '@/components/option-chip'
 import { PrimaryButton } from '@/components/primary-button'
@@ -14,6 +14,7 @@ import {
   type CreateGigPayload
 } from '@/lib/raket-types'
 import { useSession } from '@/providers/session-provider'
+import { postJobComposerStyles as styles } from '@/styles/components/post-job-composer'
 
 type GigFormState = {
   title: string
@@ -353,25 +354,10 @@ export function PostJobComposer({
   return (
     <>
       <AppSurface mode={mode}>
-        <Text
-          selectable
-          style={{
-            color: colors.text,
-            fontSize: 24,
-            fontWeight: '800',
-            lineHeight: 30
-          }}
-        >
+        <Text selectable style={[styles.title, { color: colors.text }]}>
           {introTitle}
         </Text>
-        <Text
-          selectable
-          style={{
-            color: colors.textMuted,
-            fontSize: 15,
-            lineHeight: 22
-          }}
-        >
+        <Text selectable style={[styles.description, { color: colors.textMuted }]}>
           {introDescription}
         </Text>
       </AppSurface>
@@ -380,14 +366,7 @@ export function PostJobComposer({
         ? null
         : (
           <AppSurface mode={mode}>
-            <Text
-              selectable
-              style={{
-                color: colors.danger,
-                fontSize: 15,
-                fontWeight: '700'
-              }}
-            >
+            <Text selectable style={[styles.errorText, { color: colors.danger }]}>
               {localError}
             </Text>
           </AppSurface>
@@ -411,58 +390,21 @@ export function PostJobComposer({
           placeholder="Share the scope, what is included, and the outcome you need."
           value={form.description}
         />
-        <View style={{ gap: 8 }}>
-          <Text
-            selectable
-            style={{
-              color: colors.text,
-              fontSize: 14,
-              fontWeight: '600'
-            }}
-          >
+        <View style={styles.fieldGroup}>
+          <Text selectable style={[styles.fieldLabel, { color: colors.text }]}>
             Budget in PHP
           </Text>
-          <View
-            style={{
-              minHeight: 52,
-              borderRadius: 8,
-              borderCurve: 'continuous',
-              borderWidth: 1,
-              borderColor: colors.border,
-              backgroundColor: colors.surfaceMuted,
-              paddingLeft: 14,
-              paddingRight: 12,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 12
-            }}
-          >
+          <View style={[styles.budgetInputWrap, { borderColor: colors.border, backgroundColor: colors.surfaceMuted }]}>
             <TextInput
               keyboardType="number-pad"
               onChangeText={(value) => { updateForm('priceAmount', value.replace(/[^0-9]/g, '')) }}
               placeholder="100"
               placeholderTextColor={colors.textMuted}
               selectionColor={colors.accent}
-              style={{
-                flex: 1,
-                minHeight: 44,
-                color: colors.text,
-                fontSize: 16,
-                fontWeight: '700',
-                paddingVertical: 0
-              }}
+              style={[styles.budgetInput, { color: colors.text }]}
               value={form.priceAmount}
             />
-            <Text
-              selectable
-              style={{
-                minWidth: 44,
-                color: colors.textMuted,
-                fontSize: 14,
-                fontWeight: '700',
-                textAlign: 'right'
-              }}
-            >
+            <Text selectable style={[styles.budgetSuffix, { color: colors.textMuted }]}>
               /day
             </Text>
           </View>
@@ -480,15 +422,8 @@ export function PostJobComposer({
             )
           : (
             <>
-              <View style={{ gap: 8 }}>
-                <Text
-                  selectable
-                  style={{
-                    color: colors.text,
-                    fontSize: 14,
-                    fontWeight: '600'
-                  }}
-                >
+              <View style={styles.fieldGroup}>
+                <Text selectable style={[styles.fieldLabel, { color: colors.text }]}>
                   Start date and time
                 </Text>
                 <Pressable
@@ -503,27 +438,11 @@ export function PostJobComposer({
                     }
                   ]}
                 >
-                  <View style={{ gap: 6 }}>
-                    <Text
-                      selectable
-                      style={{
-                        color: colors.textMuted,
-                        fontSize: 12,
-                        fontWeight: '700',
-                        letterSpacing: 0.3,
-                        textTransform: 'uppercase'
-                      }}
-                    >
+                  <View style={styles.scheduleCopy}>
+                    <Text selectable style={[styles.scheduleEyebrow, { color: colors.textMuted }]}>
                       Schedule
                     </Text>
-                    <Text
-                      selectable
-                      style={{
-                        color: form.scheduleSummary.trim() === '' ? colors.textMuted : colors.text,
-                        fontSize: 16,
-                        fontWeight: '700'
-                      }}
-                    >
+                    <Text selectable style={[styles.scheduleValue, { color: form.scheduleSummary.trim() === '' ? colors.textMuted : colors.text }]}>
                       {form.scheduleSummary.trim() === '' ? 'Choose start date and time' : form.scheduleSummary}
                     </Text>
                   </View>
@@ -534,23 +453,10 @@ export function PostJobComposer({
       </AppSurface>
 
       <AppSurface mode={mode}>
-        <Text
-          selectable
-          style={{
-            color: colors.text,
-            fontSize: 15,
-            fontWeight: '700'
-          }}
-        >
+        <Text selectable style={[styles.sectionTitle, { color: colors.text }]}>
           Category
         </Text>
-        <View
-          style={{
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            gap: 10
-          }}
-        >
+        <View style={styles.chipWrap}>
           {gigCategories.map((category) => (
             <OptionChip
               key={category}
@@ -580,8 +486,8 @@ export function PostJobComposer({
           placeholder="Teachers Village East"
           value={form.barangay}
         />
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          <View style={{ flex: 1 }}>
+        <View style={styles.splitRow}>
+          <View style={styles.splitColumn}>
             <TextField
               keyboardType="decimal-pad"
               label="Latitude"
@@ -591,7 +497,7 @@ export function PostJobComposer({
               value={form.latitude}
             />
           </View>
-          <View style={{ flex: 1 }}>
+          <View style={styles.splitColumn}>
             <TextField
               keyboardType="decimal-pad"
               label="Longitude"
@@ -613,17 +519,10 @@ export function PostJobComposer({
       </AppSurface>
 
       <AppSurface mode={mode}>
-        <Text
-          selectable
-          style={{
-            color: colors.text,
-            fontSize: 15,
-            fontWeight: '700'
-          }}
-        >
+        <Text selectable style={[styles.sectionTitle, { color: colors.text }]}>
           Save state
         </Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+        <View style={styles.chipWrap}>
           {(['published', 'draft'] as const).map((status) => (
             <OptionChip
               key={status}
@@ -665,15 +564,7 @@ export function PostJobComposer({
                 ]}
               >
                 <View style={styles.sheetHandle} />
-                <Text
-                  selectable
-                  style={{
-                    color: colors.text,
-                    fontSize: 16,
-                    fontWeight: '700',
-                    textAlign: 'center'
-                  }}
-                >
+                <Text selectable style={[styles.sheetTitle, { color: colors.text }]}>
                   Pick a time
                 </Text>
                 <View style={styles.sheetDivider} />
@@ -791,101 +682,3 @@ export function PostJobComposer({
     </>
   )
 }
-
-const styles = StyleSheet.create({
-  scheduleTrigger: {
-    minHeight: 76,
-    borderRadius: 16,
-    borderCurve: 'continuous',
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    justifyContent: 'center'
-  },
-  sheetOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(9, 11, 12, 0.4)'
-  },
-  sheetDismissArea: {
-    flex: 1
-  },
-  sheetCard: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    borderCurve: 'continuous',
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    paddingBottom: 14,
-    gap: 10
-  },
-  sheetHandle: {
-    alignSelf: 'center',
-    width: 46,
-    height: 6,
-    borderRadius: 999,
-    backgroundColor: '#d5d2d6',
-    marginBottom: 8
-  },
-  sheetDivider: {
-    height: 1,
-    backgroundColor: '#ebe8ec',
-    marginHorizontal: -12
-  },
-  iosPickerWrap: {
-    minHeight: 180,
-    alignItems: 'stretch',
-    justifyContent: 'center'
-  },
-  androidScheduleControls: {
-    gap: 10,
-    paddingTop: 2
-  },
-  androidWheelWrap: {
-    minHeight: 200,
-    borderRadius: 12,
-    backgroundColor: '#f3f1f3',
-    flexDirection: 'row',
-    overflow: 'hidden'
-  },
-  androidWheelColumn: {
-    backgroundColor: '#f3f1f3'
-  },
-  androidWheelOverlay: {
-    borderRadius: 10,
-    backgroundColor: '#ece9ed'
-  },
-  androidWheelItemText: {
-    color: '#18181b',
-    fontSize: 15,
-    fontWeight: '700'
-  },
-  androidWheelDivider: {
-    width: 1,
-    backgroundColor: '#ddd9de'
-  },
-  sheetPrimaryButton: {
-    minHeight: 46,
-    borderRadius: 8,
-    backgroundColor: '#050507',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  sheetPrimaryButtonText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '700'
-  },
-  sheetSecondaryButton: {
-    minHeight: 46,
-    borderRadius: 8,
-    backgroundColor: '#f2f0f2',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  sheetSecondaryButtonText: {
-    color: '#111111',
-    fontSize: 15,
-    fontWeight: '600'
-  }
-})

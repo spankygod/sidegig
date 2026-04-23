@@ -1,6 +1,11 @@
 import fp from 'fastify-plugin'
 import type { FastifyReply, FastifyRequest } from 'fastify'
-import { toAuthenticatedUser, type AuthenticatedUser } from '../modules/auth/types'
+import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose'
+import {
+  toAuthenticatedUser,
+  toAuthenticatedUserFromClaims,
+  type AuthenticatedUser
+} from '../modules/auth/types'
 
 function getBearerToken (authorizationHeader: string | undefined): string | null {
   if (authorizationHeader == null) {
@@ -13,6 +18,93 @@ function getBearerToken (authorizationHeader: string | undefined): string | null
 
 export default fp(async (fastify) => {
   fastify.decorateRequest('authUser', null)
+  const authUserCache = new Map<string, { expiresAt: number, user: AuthenticatedUser }>()
+  const authUserInFlight = new Map<string, Promise<AuthenticatedUser | null>>()
+  const jwtIssuer = fastify.config.hasSupabase
+    ? new URL('/auth/v1', fastify.config.supabaseUrl).toString().replace(/\/$/, '')
+    : null
+  const jwksUrl = fastify.config.hasSupabase
+    ? new URL('/auth/v1/.well-known/jwks.json', fastify.config.supabaseUrl)
+    : null
+  const jwks = fastify.config.hasSupabase
+    ? createRemoteJWKSet(jwksUrl!)
+    : null
+
+  if (jwksUrl != null) {
+    // Warm the JWKS cache during startup so the first authenticated request does less work.
+    void fetch(jwksUrl).catch(() => {})
+  }
+
+  function getCachedAuthUser (accessToken: string): AuthenticatedUser | null {
+    const cachedEntry = authUserCache.get(accessToken)
+
+    if (cachedEntry == null) {
+      return null
+    }
+
+    if (cachedEntry.expiresAt <= Date.now()) {
+      authUserCache.delete(accessToken)
+      return null
+    }
+
+    return cachedEntry.user
+  }
+
+  async function resolveAuthUserFromToken (accessToken: string): Promise<AuthenticatedUser | null> {
+    const cachedUser = getCachedAuthUser(accessToken)
+
+    if (cachedUser != null) {
+      return cachedUser
+    }
+
+    const inFlightResolution = authUserInFlight.get(accessToken)
+
+    if (inFlightResolution != null) {
+      return await inFlightResolution
+    }
+
+    const resolution = (async () => {
+      if (jwks != null && jwtIssuer != null) {
+        try {
+          const verifiedToken = await jwtVerify(accessToken, jwks, {
+            issuer: jwtIssuer
+          })
+          const authUserFromClaims = toAuthenticatedUserFromClaims(verifiedToken.payload as JWTPayload & Record<string, unknown>)
+
+          if (authUserFromClaims != null) {
+            const expiresAt = typeof verifiedToken.payload.exp === 'number'
+              ? verifiedToken.payload.exp * 1000
+              : Date.now() + 60_000
+
+            authUserCache.set(accessToken, {
+              user: authUserFromClaims,
+              expiresAt
+            })
+
+            return authUserFromClaims
+          }
+        } catch {
+          // Fall back to the remote Supabase user lookup when local verification is unavailable.
+        }
+      }
+
+      const { data, error } = await fastify.supabaseAdmin!.auth.getUser(accessToken)
+
+      if (error != null || data.user == null) {
+        return null
+      }
+
+      return toAuthenticatedUser(data.user)
+    })()
+
+    authUserInFlight.set(accessToken, resolution)
+
+    try {
+      return await resolution
+    } finally {
+      authUserInFlight.delete(accessToken)
+    }
+  }
 
   async function resolveAuthUser (
     request: FastifyRequest,
@@ -35,15 +127,15 @@ export default fp(async (fastify) => {
       return
     }
 
-    const { data, error } = await fastify.supabaseAdmin.auth.getUser(accessToken)
+    const authUser = await resolveAuthUserFromToken(accessToken)
 
-    if (error != null || data.user == null) {
+    if (authUser == null) {
       reply.unauthorized('Invalid or expired access token')
 
       return
     }
 
-    request.authUser = toAuthenticatedUser(data.user)
+    request.authUser = authUser
   }
 
   fastify.decorate('authenticate', async (request: FastifyRequest, reply: FastifyReply) => {

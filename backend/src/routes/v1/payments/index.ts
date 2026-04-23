@@ -1,6 +1,5 @@
 import { type FastifyPluginAsync } from 'fastify'
 import { getUserPaymentById, listUserPayments } from '../../../modules/payments/repository'
-import { ensureUserProfile } from '../../../modules/users/repository'
 
 type ListPaymentsQuery = {
   limit?: number
@@ -32,8 +31,6 @@ const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
   }, async function (request) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const payments = await listUserPayments(fastify.db, {
       userId: request.authUser!.id,
       limit: request.query.limit
@@ -50,8 +47,6 @@ const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
       params: paymentParamsSchema
     }
   }, async function (request, reply) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const payment = await getUserPaymentById(fastify.db, {
       paymentId: request.params.paymentId,
       userId: request.authUser!.id

@@ -1,5 +1,7 @@
-import { Text, TextInput, type TextInputProps, View } from 'react-native'
+import { Text, type TextInputProps, View } from 'react-native'
+import { TextInput } from 'react-native-gesture-handler'
 import { palette, type PaletteMode } from '@/constants/palette'
+import { buildTextFieldInputStyle, buildTextFieldLabelStyle, textFieldStyles } from '@/styles/components/text-field'
 
 type TextFieldProps = TextInputProps & {
   label: string
@@ -11,15 +13,8 @@ export function TextField({ label, mode, ...inputProps }: TextFieldProps) {
   const multiline = inputProps.multiline === true
 
   return (
-    <View style={{ gap: 8 }}>
-      <Text
-        selectable
-        style={{
-          color: colors.text,
-          fontSize: 14,
-          fontWeight: '600'
-        }}
-      >
+    <View style={textFieldStyles.wrapper}>
+      <Text selectable style={buildTextFieldLabelStyle(colors)}>
         {label}
       </Text>
       <TextInput
@@ -27,19 +22,7 @@ export function TextField({ label, mode, ...inputProps }: TextFieldProps) {
         selectionColor={colors.accent}
         {...inputProps}
         style={[
-          {
-            minHeight: multiline ? 120 : 52,
-            borderRadius: 8,
-            borderCurve: 'continuous',
-            borderWidth: 1,
-            borderColor: colors.border,
-            backgroundColor: colors.surfaceMuted,
-            color: colors.text,
-            paddingHorizontal: 14,
-            paddingVertical: multiline ? 14 : 12,
-            fontSize: 15
-          },
-          multiline ? { textAlignVertical: 'top' } : null,
+          buildTextFieldInputStyle(colors, multiline),
           inputProps.style
         ]}
       />

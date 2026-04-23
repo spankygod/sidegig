@@ -207,13 +207,10 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
       throw fastify.httpErrors.badRequest('Latitude and longitude must be provided together')
     }
 
-    const workerServiceArea = request.authUser == null
-      ? null
-      : await getWorkerServiceArea(fastify.db, request.authUser.id)
-
     const gig = await getPublicGigById(fastify.db, request.params.gigId, {
-      latitude: workerServiceArea?.latitude ?? request.query.latitude,
-      longitude: workerServiceArea?.longitude ?? request.query.longitude
+      workerId: request.authUser?.id,
+      latitude: request.query.latitude,
+      longitude: request.query.longitude
     })
 
     if (gig == null) {
@@ -239,8 +236,6 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
   }, async function (request) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const gigs = await listPosterGigs(fastify.db, request.authUser!.id, {
       status: request.query.status,
       limit: request.query.limit ?? 50
@@ -264,8 +259,6 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
   }, async function (request, reply) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const gig = await getPosterGigById(fastify.db, request.authUser!.id, request.params.gigId)
 
     if (gig == null) {
@@ -291,8 +284,6 @@ const gigsRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
   }, async function (request, reply) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const gig = await getPosterGigById(fastify.db, request.authUser!.id, request.params.gigId)
 
     if (gig == null) {

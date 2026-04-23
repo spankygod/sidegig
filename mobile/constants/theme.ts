@@ -1,41 +1,68 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
 import { Platform } from 'react-native';
-
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+import { palette } from '@/constants/palette';
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    text: palette.light.text,
+    background: palette.light.background,
+    tint: palette.light.accent,
+    icon: palette.light.textMuted,
+    tabIconDefault: palette.light.textMuted,
+    tabIconSelected: palette.light.accent,
+    surface: palette.light.surface,
+    surfaceMuted: palette.light.surfaceMuted,
+    border: palette.light.border,
+    danger: palette.light.danger,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    text: palette.dark.text,
+    background: palette.dark.background,
+    tint: palette.dark.accent,
+    icon: palette.dark.textMuted,
+    tabIconDefault: palette.dark.textMuted,
+    tabIconSelected: palette.dark.accent,
+    surface: palette.dark.surface,
+    surfaceMuted: palette.dark.surfaceMuted,
+    border: palette.dark.border,
+    danger: palette.dark.danger,
   },
 };
 
+export const layout = {
+  screenPadding: 20,
+  sectionGap: 16,
+  screenBottomPadding: 132,
+  spacing: {
+    xxs: 4,
+    xs: 8,
+    sm: 10,
+    md: 12,
+    lg: 14,
+    xl: 16,
+  },
+  radius: {
+    sm: 8,
+    md: 12,
+    lg: 16,
+    xl: 20,
+    xxl: 24,
+    pill: 999,
+  },
+  size: {
+    avatarMd: 52,
+    avatarLg: 54,
+    badgeSm: 22,
+    chipHeight: 32,
+  },
+  iconButtonSize: 40,
+  inputHeight: 50,
+} as const;
+
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {

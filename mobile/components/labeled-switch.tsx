@@ -1,5 +1,10 @@
 import { Switch, Text, View } from 'react-native'
 import { palette, type PaletteMode } from '@/constants/palette'
+import {
+  buildLabeledSwitchDescriptionStyle,
+  buildLabeledSwitchLabelStyle,
+  labeledSwitchStyles
+} from '@/styles/components/labeled-switch'
 
 type LabeledSwitchProps = {
   description?: string
@@ -19,36 +24,15 @@ export function LabeledSwitch({
   const colors = palette[mode ?? 'light']
 
   return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 16
-      }}
-    >
-      <View style={{ flex: 1, gap: 4 }}>
-        <Text
-          selectable
-          style={{
-            color: colors.text,
-            fontSize: 15,
-            fontWeight: '600'
-          }}
-        >
+    <View style={labeledSwitchStyles.row}>
+      <View style={labeledSwitchStyles.copy}>
+        <Text selectable style={buildLabeledSwitchLabelStyle(colors)}>
           {label}
         </Text>
         {description == null
           ? null
           : (
-            <Text
-              selectable
-              style={{
-                color: colors.textMuted,
-                fontSize: 13,
-                lineHeight: 18
-              }}
-            >
+            <Text selectable style={buildLabeledSwitchDescriptionStyle(colors)}>
               {description}
             </Text>
             )}

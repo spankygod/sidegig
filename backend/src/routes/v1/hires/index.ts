@@ -116,8 +116,6 @@ const hiresRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
   }, async function (request) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const hires = await listUserHires(fastify.db, request.authUser!.id, {
       status: request.query.status
     })
@@ -133,8 +131,6 @@ const hiresRoutes: FastifyPluginAsync = async (fastify) => {
       params: hireParamsSchema
     }
   }, async function (request, reply) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const hire = await getUserHireById(fastify.db, {
       hireId: request.params.hireId,
       userId: request.authUser!.id
@@ -156,8 +152,6 @@ const hiresRoutes: FastifyPluginAsync = async (fastify) => {
       params: hireParamsSchema
     }
   }, async function (request, reply) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const workDetail = await getHireWorkDetail(fastify.db, {
       hireId: request.params.hireId,
       userId: request.authUser!.id
@@ -179,8 +173,6 @@ const hiresRoutes: FastifyPluginAsync = async (fastify) => {
       params: hireParamsSchema
     }
   }, async function (request, reply) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const milestones = await listHireMilestones(fastify.db, {
       hireId: request.params.hireId,
       userId: request.authUser!.id

@@ -7,7 +7,6 @@ import {
   listThreadMessages,
   listUserChatThreads
 } from '../../../modules/chat/repository'
-import { ensureUserProfile } from '../../../modules/users/repository'
 import { createNotification } from '../../../modules/notifications/repository'
 
 type ApplicationParams = {
@@ -43,8 +42,6 @@ const chatRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/threads', {
     onRequest: [fastify.authenticate]
   }, async function (request) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const threads = await listUserChatThreads(fastify.db, request.authUser!.id)
 
     return {
@@ -58,8 +55,6 @@ const chatRoutes: FastifyPluginAsync = async (fastify) => {
       params: uuidParam('applicationId')
     }
   }, async function (request, reply) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const thread = await ensureApplicationChatThread(fastify.db, {
       applicationId: request.params.applicationId,
       userId: request.authUser!.id
@@ -81,8 +76,6 @@ const chatRoutes: FastifyPluginAsync = async (fastify) => {
       params: uuidParam('hireId')
     }
   }, async function (request, reply) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const thread = await ensureHireChatThread(fastify.db, {
       hireId: request.params.hireId,
       userId: request.authUser!.id
@@ -111,8 +104,6 @@ const chatRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
   }, async function (request, reply) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const messages = await listThreadMessages(fastify.db, {
       limit: request.query.limit ?? 50,
       threadId: request.params.threadId,
@@ -143,8 +134,6 @@ const chatRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
   }, async function (request, reply) {
-    await ensureUserProfile(fastify.db, request.authUser!)
-
     const body = normalizeChatBody(request.body.body)
 
     if (body === '') {

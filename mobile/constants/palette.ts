@@ -28,3 +28,11 @@ export const palette = {
 } as const
 
 export type PaletteMode = keyof typeof palette
+
+export function resolvePaletteMode(colorScheme: 'light' | 'dark' | null | undefined): PaletteMode {
+  if (colorScheme === 'dark') {
+    return 'dark'
+  }
+
+  return 'light'
+}

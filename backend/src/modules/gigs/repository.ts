@@ -290,14 +290,27 @@ export async function getPublicGigById (
   db: Pool,
   gigId: string,
   filters?: {
+    workerId?: string
     latitude?: number
     longitude?: number
   }
 ): Promise<PublicGig | null> {
   const values: Array<string | number> = [gigId]
   let distanceExpression = 'null::numeric'
+  let workerJoin = ''
 
-  if (filters?.latitude != null && filters.longitude != null) {
+  if (filters?.workerId != null) {
+    values.push(filters.workerId)
+    const workerIdParam = values.length
+
+    workerJoin = `left join public.profiles worker_profile on worker_profile.id = $${workerIdParam}`
+    distanceExpression = `
+      case
+        when worker_profile.latitude is null or worker_profile.longitude is null then null::numeric
+        else public.calculate_distance_km(worker_profile.latitude, worker_profile.longitude, g.latitude, g.longitude)
+      end
+    `
+  } else if (filters?.latitude != null && filters.longitude != null) {
     values.push(filters.latitude)
     const latitudeParam = values.length
     values.push(filters.longitude)
@@ -340,6 +353,7 @@ export async function getPublicGigById (
       from public.gig_posts g
       inner join public.profiles p on p.id = g.poster_id
       left join public.user_stats us on us.user_id = p.id
+      ${workerJoin}
       where g.id = $1
         and g.status = 'published'
     `,

@@ -1,5 +1,6 @@
 import { Pressable, Text } from 'react-native'
 import { palette, type PaletteMode } from '@/constants/palette'
+import { buildOptionChipLabelStyle, buildOptionChipStyle } from '@/styles/components/option-chip'
 
 type OptionChipProps = {
   label: string
@@ -14,24 +15,9 @@ export function OptionChip({ label, mode, onPress, selected }: OptionChipProps) 
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => ({
-        borderRadius: 999,
-        borderWidth: 1,
-        borderColor: selected ? colors.accent : colors.border,
-        backgroundColor: selected ? colors.accentSoft : colors.surface,
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        opacity: pressed ? 0.85 : 1
-      })}
+      style={({ pressed }) => buildOptionChipStyle(colors, selected, pressed)}
     >
-      <Text
-        selectable
-        style={{
-          color: selected ? colors.accent : colors.text,
-          fontSize: 14,
-          fontWeight: '600'
-        }}
-      >
+      <Text selectable style={buildOptionChipLabelStyle(colors, selected)}>
         {label}
       </Text>
     </Pressable>

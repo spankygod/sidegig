@@ -32,6 +32,10 @@ export interface BackendAuthUser {
 export interface UserProfile {
   id: string
   displayName: string
+  phone: string | null
+  avatarUrl: string | null
+  hasPin: boolean
+  province: string | null
   city: string | null
   barangay: string | null
   latitude: number | null
@@ -48,6 +52,21 @@ export interface UserProfile {
     hiresFunded: number
     hiresCompleted: number
   }
+}
+
+export interface UpdateProfilePayload {
+  displayName?: string
+  phone?: string | null
+  avatarUrl?: string | null
+  pinCode?: string | null
+  province?: string | null
+  city?: string | null
+  barangay?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  serviceRadiusKm?: number
+  bio?: string | null
+  skills?: string[]
 }
 
 export interface OwnedGig {
@@ -179,6 +198,17 @@ const durationLabels: Record<DurationBucket, string> = {
   fifteen_to_thirty_days: '15 to 30 days'
 }
 
+const phpAmountFormatter = new Intl.NumberFormat('en-PH', {
+  maximumFractionDigits: 0
+})
+
+const gigTimestampFormatter = new Intl.DateTimeFormat('en-PH', {
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit'
+})
+
 export function formatGigCategory (category: GigCategory): string {
   return categoryLabels[category]
 }
@@ -187,19 +217,28 @@ export function formatDurationBucket (durationBucket: DurationBucket): string {
   return durationLabels[durationBucket]
 }
 
-export function formatPhpCurrency (amount: number): string {
-  return new Intl.NumberFormat('en-PH', {
-    style: 'currency',
-    currency: 'PHP',
-    maximumFractionDigits: 0
-  }).format(amount)
+export function formatPhpAmount (amount: number): string {
+  return `₱${phpAmountFormatter.format(amount)}`
 }
 
 export function formatGigTimestamp (value: string): string {
-  return new Intl.DateTimeFormat('en-PH', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit'
-  }).format(new Date(value))
+  return gigTimestampFormatter.format(new Date(value))
+}
+
+function hasProfileValue(value: string | null | undefined): boolean {
+  return value != null && value.trim() !== ''
+}
+
+export function isProfileOnboardingComplete(profile: UserProfile | null | undefined): boolean {
+  if (profile == null) {
+    return false
+  }
+
+  return hasProfileValue(profile.displayName) &&
+    hasProfileValue(profile.phone) &&
+    profile.hasPin &&
+    hasProfileValue(profile.avatarUrl) &&
+    hasProfileValue(profile.province) &&
+    hasProfileValue(profile.city) &&
+    hasProfileValue(profile.barangay)
 }
